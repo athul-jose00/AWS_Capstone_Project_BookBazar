@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>BookBazaar - Login & Signup</title>
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+    />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&family=Open+Sans:wght@400;600&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="/static/css/style.css" />
+  </head>
+  <body class="{% block body_class %}{% endblock %}">
+    <div class="site">
+      <header class="site-header">
+        <a class="logo" href="/">BookBazaar</a>
+      </header>
+      <main>
+        {% with messages = get_flashed_messages(with_categories=true) %} {% if
+        messages %}
+        <div class="flashes" role="status" aria-live="polite">
+          {% for category, msg in messages %}
+          <div class="flash {{ category }}">
+            <div class="flash-body">{{ msg }}</div>
+            <button class="flash-close" aria-label="Dismiss">&times;</button>
+          </div>
+          {% endfor %}
+        </div>
+        {% endif %} {% endwith %} {% block content %}{% endblock %}
+      </main>
+    </div>
+    <script src="/static/js/script.js"></script>
+  </body>
+</html>

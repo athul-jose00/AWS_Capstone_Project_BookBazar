@@ -1,0 +1,8 @@
+{% extends 'base.html' %} {% block body_class %}dashboard-page{% endblock %} {%
+block content %}
+<div class="dashboard">
+  <h2>Welcome, {{ user.name or user.email }}</h2>
+  <p>This is a starter dashboard for BookBazaar.</p>
+  <p><a href="/logout">Log out</a></p>
+</div>
+{% endblock %}

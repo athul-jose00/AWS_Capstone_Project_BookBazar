@@ -42,7 +42,7 @@ def signup():
         'password': generate_password_hash(password)
     }
     flash('Account created successfully. Please sign in.', 'success')
-    return redirect(url_for('index'))
+    return redirect(url_for('auth_page'))
 
 
 @app.route('/login', methods=['POST'])

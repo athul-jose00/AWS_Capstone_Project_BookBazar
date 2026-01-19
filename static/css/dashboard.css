@@ -1,0 +1,17 @@
+/* Dashboard styles */
+.dashboard {
+  max-width: 900px;
+  margin: 40px auto;
+  padding: 30px;
+  background: var(--white);
+  border-radius: 12px;
+  box-shadow: var(--shadow-md);
+}
+.dashboard h2 {
+  font-family: "Montserrat", sans-serif;
+  font-size: 26px;
+  margin: 0 0 12px;
+}
+.dashboard a {
+  color: var(--accent-teal);
+}

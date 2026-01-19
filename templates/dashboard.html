@@ -1,5 +1,6 @@
 {% extends 'base.html' %} {% block body_class %}dashboard-page{% endblock %} {%
-block content %}
+block extra_css %}<link rel="stylesheet" href="/static/css/dashboard.css" />{%
+endblock %} {% block content %}
 <div class="dashboard">
   <h2>Welcome, {{ user.name or user.email }}</h2>
   <p>This is a starter dashboard for BookBazaar.</p>

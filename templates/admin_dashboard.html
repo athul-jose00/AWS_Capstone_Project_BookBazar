@@ -1,5 +1,7 @@
 {% extends 'base.html' %} {% block title %}Admin Dashboard | BookBazaar{%
-endblock %} {% block body_class %}admin-page{% endblock %} {% block header %}
+endblock %} {% block body_class %}admin-page{% endblock %} {% block extra_css
+%}<link rel="stylesheet" href="/static/css/admin_dashboard.css" />{% endblock %}
+{% block header %}
 <header class="site-header">
   <a class="logo" href="/"> <i class="fas fa-book-open"></i> BookBazaar </a>
   <nav class="nav-actions">
@@ -20,11 +22,12 @@ endblock %} {% block body_class %}admin-page{% endblock %} {% block header %}
     </p>
   </div>
 
-  <!-- Statistics Cards -->
-  <!--
   <div class="stats-grid">
     <div class="stat-card">
-      <div class="stat-icon" style="background: rgba(59, 130, 246, 0.1); color: #3b82f6;">
+      <div
+        class="stat-icon"
+        style="background: rgba(59, 130, 246, 0.1); color: #3b82f6"
+      >
         <i class="fas fa-users"></i>
       </div>
       <div class="stat-content">
@@ -34,7 +37,10 @@ endblock %} {% block body_class %}admin-page{% endblock %} {% block header %}
     </div>
 
     <div class="stat-card">
-      <div class="stat-icon" style="background: rgba(16, 185, 129, 0.1); color: #10b981;">
+      <div
+        class="stat-icon"
+        style="background: rgba(16, 185, 129, 0.1); color: #10b981"
+      >
         <i class="fas fa-book"></i>
       </div>
       <div class="stat-content">
@@ -44,7 +50,10 @@ endblock %} {% block body_class %}admin-page{% endblock %} {% block header %}
     </div>
 
     <div class="stat-card">
-      <div class="stat-icon" style="background: rgba(245, 158, 11, 0.1); color: #f59e0b;">
+      <div
+        class="stat-icon"
+        style="background: rgba(245, 158, 11, 0.1); color: #f59e0b"
+      >
         <i class="fas fa-shopping-cart"></i>
       </div>
       <div class="stat-content">
@@ -54,7 +63,10 @@ endblock %} {% block body_class %}admin-page{% endblock %} {% block header %}
     </div>
 
     <div class="stat-card">
-      <div class="stat-icon" style="background: rgba(168, 85, 247, 0.1); color: #a855f7;">
+      <div
+        class="stat-icon"
+        style="background: rgba(168, 85, 247, 0.1); color: #a855f7"
+      >
         <i class="fas fa-user-shield"></i>
       </div>
       <div class="stat-content">
@@ -101,7 +113,10 @@ endblock %} {% block body_class %}admin-page{% endblock %} {% block header %}
     <h2><i class="fas fa-history"></i> Recent Activity</h2>
     <div class="activity-list">
       <div class="activity-item">
-        <div class="activity-icon" style="background: rgba(59, 130, 246, 0.1); color: #3b82f6;">
+        <div
+          class="activity-icon"
+          style="background: rgba(59, 130, 246, 0.1); color: #3b82f6"
+        >
           <i class="fas fa-user-plus"></i>
         </div>
         <div class="activity-content">
@@ -111,7 +126,10 @@ endblock %} {% block body_class %}admin-page{% endblock %} {% block header %}
       </div>
 
       <div class="activity-item">
-        <div class="activity-icon" style="background: rgba(16, 185, 129, 0.1); color: #10b981;">
+        <div
+          class="activity-icon"
+          style="background: rgba(16, 185, 129, 0.1); color: #10b981"
+        >
           <i class="fas fa-shopping-bag"></i>
         </div>
         <div class="activity-content">
@@ -143,6 +161,5 @@ endblock %} {% block body_class %}admin-page{% endblock %} {% block header %}
       </div>
     </div>
   </div>
-  -->
 </div>
 {% endblock %}

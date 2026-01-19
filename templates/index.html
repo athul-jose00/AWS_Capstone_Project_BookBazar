@@ -1,0 +1,92 @@
+{% extends 'base.html' %} {% block body_class %}landing-page{% endblock %} {%
+block content %}
+<!-- Hero Section -->
+<section class="hero-section">
+  <div class="hero-content">
+    <h1 class="hero-title">The Modern Marketplace for Books</h1>
+    <p class="hero-subtitle">
+      A scalable, cloud-native platform connecting passionate readers with
+      independent sellers. Manage inventory, track orders, and discover your
+      next favorite read.
+    </p>
+    <div
+      style="display: flex; justify-content: center; gap: 1rem; flex-wrap: wrap"
+    >
+      <a href="{{ url_for('auth_page') }}" class="btn btn-primary">
+        Start Browsing <i class="fas fa-arrow-right"></i>
+      </a>
+      <a href="#features" class="btn btn-ghost"> Learn More </a>
+    </div>
+  </div>
+</section>
+
+<!-- Features Grid -->
+<section id="features" class="features-section">
+  <div class="features-grid">
+    <!-- Customer Card -->
+    <div class="feature-card">
+      <div class="icon-container">
+        <i class="fas fa-shopping-bag"></i>
+      </div>
+      <h3 class="feature-title">For Customers</h3>
+      <p class="feature-desc">
+        Experience a seamless shopping journey. Search by genre, add to cart,
+        and track your delivery in real-time with our intuitive interface.
+      </p>
+      <a href="{{ url_for('auth_page') }}" class="feature-link"
+        >Shop Now <i class="fas fa-chevron-right"></i
+      ></a>
+    </div>
+
+    <!-- Seller Card -->
+    <div class="feature-card">
+      <div class="icon-container">
+        <i class="fas fa-chart-line"></i>
+      </div>
+      <h3 class="feature-title">For Sellers</h3>
+      <p class="feature-desc">
+        Powerful tools to list books, manage stock levels, and analyze sales
+        performance. Grow your business with our dedicated dashboard.
+      </p>
+      <a href="{{ url_for('auth_page') }}" class="feature-link"
+        >Start Selling <i class="fas fa-chevron-right"></i
+      ></a>
+    </div>
+
+    <!-- Tech Card -->
+    <div class="feature-card">
+      <div class="icon-container">
+        <i class="fas fa-shield-alt"></i>
+      </div>
+      <h3 class="feature-title">Secure & Scalable</h3>
+      <p class="feature-desc">
+        Built on AWS EC2 and DynamoDB. We ensure your transactions are secure
+        and the platform scales instantly to meet demand.
+      </p>
+      <a href="#tech" class="feature-link"
+        >View Tech Stack <i class="fas fa-chevron-right"></i
+      ></a>
+    </div>
+  </div>
+</section>
+
+<!-- Tech Stack Strip -->
+<div id="tech" class="tech-strip">
+  <div class="tech-logos">
+    <div class="tech-item"><i class="fab fa-aws"></i> Powered by AWS</div>
+    <div class="tech-item"><i class="fab fa-python"></i> Python Flask</div>
+    <div class="tech-item"><i class="fas fa-database"></i> DynamoDB</div>
+  </div>
+</div>
+
+<!-- Footer -->
+<footer class="site-footer">
+  <div class="footer-links">
+    <a href="#about">About Us</a>
+    <a href="#contact">Contact Support</a>
+    <a href="#privacy">Privacy Policy</a>
+    <a href="#seller">Seller Guidelines</a>
+  </div>
+  <p>&copy; 2026 BookBazaar Capstone Project. All rights reserved.</p>
+</footer>
+{% endblock %}

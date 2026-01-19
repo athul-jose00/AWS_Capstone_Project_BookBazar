@@ -3,22 +3,34 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <title>BookBazaar - Login & Signup</title>
+    <title>
+      {% block title %}BookBazaar | Premier Book Commerce Platform{% endblock %}
+    </title>
     <link
       rel="stylesheet"
       href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
     />
     <link
-      href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&family=Open+Sans:wght@400;600&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800&family=Open+Sans:wght@400;600&display=swap"
       rel="stylesheet"
     />
     <link rel="stylesheet" href="/static/css/style.css" />
   </head>
   <body class="{% block body_class %}{% endblock %}">
     <div class="site">
+      {% block header %}
       <header class="site-header">
-        <a class="logo" href="/">BookBazaar</a>
+        <a class="logo" href="/">
+          <i class="fas fa-book-open"></i> BookBazaar
+        </a>
+        <nav class="nav-actions">
+          <a href="{{ url_for('auth_page') }}" class="nav-link">Sign In</a>
+          <a href="{{ url_for('auth_page') }}" class="btn btn-primary btn-nav">
+            Get Started
+          </a>
+        </nav>
       </header>
+      {% endblock %}
       <main>
         {% with messages = get_flashed_messages(with_categories=true) %} {% if
         messages %}

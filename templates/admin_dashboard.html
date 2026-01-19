@@ -1,0 +1,148 @@
+{% extends 'base.html' %} {% block title %}Admin Dashboard | BookBazaar{%
+endblock %} {% block body_class %}admin-page{% endblock %} {% block header %}
+<header class="site-header">
+  <a class="logo" href="/"> <i class="fas fa-book-open"></i> BookBazaar </a>
+  <nav class="nav-actions">
+    <span class="nav-link" style="color: var(--accent-teal)">
+      <i class="fas fa-user-shield"></i> {{ user.name }}
+    </span>
+    <a href="{{ url_for('logout') }}" class="btn btn-primary btn-nav">
+      <i class="fas fa-sign-out-alt"></i> Logout
+    </a>
+  </nav>
+</header>
+{% endblock %} {% block content %}
+<div class="admin-container">
+  <div class="admin-header">
+    <h1><i class="fas fa-tachometer-alt"></i> Admin Dashboard</h1>
+    <p class="admin-subtitle">
+      Welcome back, {{ user.name }}. Here's your platform overview.
+    </p>
+  </div>
+
+  <!-- Statistics Cards -->
+  <!--
+  <div class="stats-grid">
+    <div class="stat-card">
+      <div class="stat-icon" style="background: rgba(59, 130, 246, 0.1); color: #3b82f6;">
+        <i class="fas fa-users"></i>
+      </div>
+      <div class="stat-content">
+        <h3>{{ stats.total_users }}</h3>
+        <p>Total Users</p>
+      </div>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-icon" style="background: rgba(16, 185, 129, 0.1); color: #10b981;">
+        <i class="fas fa-book"></i>
+      </div>
+      <div class="stat-content">
+        <h3>{{ stats.total_books }}</h3>
+        <p>Total Books</p>
+      </div>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-icon" style="background: rgba(245, 158, 11, 0.1); color: #f59e0b;">
+        <i class="fas fa-shopping-cart"></i>
+      </div>
+      <div class="stat-content">
+        <h3>{{ stats.total_orders }}</h3>
+        <p>Total Orders</p>
+      </div>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-icon" style="background: rgba(168, 85, 247, 0.1); color: #a855f7;">
+        <i class="fas fa-user-shield"></i>
+      </div>
+      <div class="stat-content">
+        <h3>{{ stats.total_admins }}</h3>
+        <p>Administrators</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="admin-section">
+    <h2><i class="fas fa-bolt"></i> Quick Actions</h2>
+    <div class="actions-grid">
+      <div class="action-card">
+        <i class="fas fa-user-plus"></i>
+        <h3>Manage Users</h3>
+        <p>View, add, or remove user accounts</p>
+        <button class="btn btn-secondary">View Users</button>
+      </div>
+
+      <div class="action-card">
+        <i class="fas fa-book-medical"></i>
+        <h3>Manage Books</h3>
+        <p>Add, edit, or remove book listings</p>
+        <button class="btn btn-secondary">Manage Catalog</button>
+      </div>
+
+      <div class="action-card">
+        <i class="fas fa-clipboard-check"></i>
+        <h3>Validate Sellers</h3>
+        <p>Review and approve seller credentials</p>
+        <button class="btn btn-secondary">Review Sellers</button>
+      </div>
+
+      <div class="action-card">
+        <i class="fas fa-chart-bar"></i>
+        <h3>View Analytics</h3>
+        <p>Platform performance and sales metrics</p>
+        <button class="btn btn-secondary">View Reports</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="admin-section">
+    <h2><i class="fas fa-history"></i> Recent Activity</h2>
+    <div class="activity-list">
+      <div class="activity-item">
+        <div class="activity-icon" style="background: rgba(59, 130, 246, 0.1); color: #3b82f6;">
+          <i class="fas fa-user-plus"></i>
+        </div>
+        <div class="activity-content">
+          <p><strong>New user registration</strong></p>
+          <p class="activity-time">No recent registrations</p>
+        </div>
+      </div>
+
+      <div class="activity-item">
+        <div class="activity-icon" style="background: rgba(16, 185, 129, 0.1); color: #10b981;">
+          <i class="fas fa-shopping-bag"></i>
+        </div>
+        <div class="activity-content">
+          <p><strong>Platform Status</strong></p>
+          <p class="activity-time">System running normally</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="admin-section">
+    <h2><i class="fas fa-info-circle"></i> System Information</h2>
+    <div class="info-grid">
+      <div class="info-item">
+        <strong>Platform:</strong>
+        <span>AWS EC2</span>
+      </div>
+      <div class="info-item">
+        <strong>Database:</strong>
+        <span>DynamoDB</span>
+      </div>
+      <div class="info-item">
+        <strong>Status:</strong>
+        <span class="status-badge status-active">Active</span>
+      </div>
+      <div class="info-item">
+        <strong>Version:</strong>
+        <span>1.0.0</span>
+      </div>
+    </div>
+  </div>
+  -->
+</div>
+{% endblock %}

@@ -1,0 +1,62 @@
+<aside class="customer-sidebar" aria-label="Customer sidebar">
+  <nav aria-label="Customer menu">
+    <ul>
+      <li>
+        <a href="{{ url_for('dashboard') }}" class="sb-item" id="sb-browse">
+          <span class="sb-icon"><i class="fas fa-book"></i></span>
+          <span class="sb-label">Browse Books</span>
+        </a>
+      </li>
+      <li>
+        <a href="{{ url_for('wishlist') }}" class="sb-item" id="sb-wishlist">
+          <span class="sb-icon"><i class="fas fa-heart"></i></span>
+          <span class="sb-label">Wishlist</span>
+        </a>
+      </li>
+      <li>
+        <a href="{{ url_for('profile') }}" class="sb-item" id="sb-profile">
+          <span class="sb-icon"><i class="fas fa-user"></i></span>
+          <span class="sb-label">Your Profile</span>
+        </a>
+      </li>
+      <li>
+        <a href="{{ url_for('orders') }}" class="sb-item" id="sb-orders">
+          <span class="sb-icon"><i class="fas fa-box-open"></i></span>
+          <span class="sb-label">Your Orders</span>
+        </a>
+      </li>
+      <li>
+        <a href="{{ url_for('wishlist') }}" class="sb-item" id="sb-wishlist">
+          <span class="sb-icon"><i class="fas fa-heart"></i></span>
+          <span class="sb-label">Wishlist</span>
+        </a>
+      </li>
+    </ul>
+  </nav>
+  <div class="sb-spacer"></div>
+  <div>
+    <a href="{{ url_for('logout') }}" class="sb-item" style="color: #e74c3c">
+      <span class="sb-icon"><i class="fas fa-sign-out-alt"></i></span>
+      <span class="sb-label">Logout</span>
+    </a>
+  </div>
+</aside>
+
+<script>
+  (function () {
+    const items = document.querySelectorAll(".sb-item");
+    if (!items || items.length === 0) return;
+    const path = window.location.pathname;
+    items.forEach((a) => {
+      const href = a.getAttribute("href");
+      if (href && href !== "#" && path.startsWith(href)) {
+        items.forEach((i) => i.classList.remove("active"));
+        a.classList.add("active");
+      }
+      a.addEventListener("click", () => {
+        items.forEach((i) => i.classList.remove("active"));
+        a.classList.add("active");
+      });
+    });
+  })();
+</script>

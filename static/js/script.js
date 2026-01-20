@@ -34,3 +34,25 @@ window.addEventListener("load", () => {
     }
   });
 });
+
+// Wishlist heart toggle (AJAX)
+document.addEventListener("DOMContentLoaded", () => {
+  document.querySelectorAll(".card-heart").forEach((btn) => {
+    btn.addEventListener("click", async (e) => {
+      e.preventDefault();
+      const id = btn.dataset.bookId;
+      try {
+        const res = await fetch(`/wishlist/toggle/${id}`, { method: "POST" });
+        if (!res.ok) throw new Error("network");
+        const data = await res.json();
+        if (data.added) btn.classList.add("hearted");
+        else btn.classList.remove("hearted");
+        // update global cart/wishlist badges if present
+        const badge = document.querySelector(".nav-cart .cart-badge");
+        if (badge && data.count !== undefined) badge.textContent = data.count;
+      } catch (err) {
+        console.error("Wishlist toggle failed", err);
+      }
+    });
+  });
+});

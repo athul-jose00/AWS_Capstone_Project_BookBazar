@@ -1,0 +1,64 @@
+{% extends "base.html" %} {% block title %}Your Cart - BookBazaar{% endblock %}
+{% block content %}
+<div class="dashboard-layout">
+  {% include '_customer_sidebar.html' %}
+
+  <div class="dashboard-container" style="max-width: 1000px; padding: 1rem">
+    <div class="cart-panel">
+      <div class="cart-header">
+        <h1 style="margin: 0">Your Cart</h1>
+        <div style="color: var(--text-light)">
+          {{ items|length if items else 0 }} items
+        </div>
+      </div>
+
+      {% if items and items|length > 0 %}
+      <table class="cart-table" aria-describedby="cart-summary">
+        <thead>
+          <tr>
+            <th>Book</th>
+            <th style="width: 120px">Price</th>
+            <th style="width: 140px">Qty</th>
+            <th style="width: 140px">Subtotal</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for it in items %}
+          <tr>
+            <td>
+              <div class="cart-book-title">{{ it.title }}</div>
+              <div class="cart-book-meta">by {{ it.author }}</div>
+            </td>
+            <td>${{ "%.2f"|format(it.price) }}</td>
+            <td>
+              <div class="qty-pill">
+                <button aria-label="Decrease qty">−</button>
+                <div>{{ it.qty }}</div>
+                <button aria-label="Increase qty">+</button>
+              </div>
+            </td>
+            <td>${{ "%.2f"|format(it.subtotal) }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+        <tfoot>
+          <tr class="cart-total-row">
+            <td colspan="3" style="text-align: right">Total</td>
+            <td style="">${{ "%.2f"|format(total) }}</td>
+          </tr>
+        </tfoot>
+      </table>
+
+      <div class="cart-actions">
+        <a href="{{ url_for('dashboard') }}" class="btn btn-ghost"
+          >Continue Shopping</a
+        >
+        <button class="btn-checkout">Proceed to Checkout</button>
+      </div>
+      {% else %}
+      <p>Your cart is empty.</p>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}

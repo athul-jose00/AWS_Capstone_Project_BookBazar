@@ -24,12 +24,30 @@
         <a class="logo" href="/">
           <i class="fas fa-book-open"></i> BookBazaar
         </a>
+        {% if not hide_header_actions %}
         <nav class="nav-actions">
+          <a
+            href="{{ url_for('cart') }}"
+            class="nav-cart"
+            style="
+              position: relative;
+              display: inline-flex;
+              align-items: center;
+              margin-right: 0.75rem;
+              color: var(--primary-dark);
+            "
+          >
+            <i class="fas fa-shopping-cart"></i>
+            {% if cart_count and cart_count > 0 %}
+            <span class="cart-badge">{{ cart_count }}</span>
+            {% endif %}
+          </a>
           <a href="{{ url_for('auth_page') }}" class="nav-link">Sign In</a>
           <a href="{{ url_for('auth_page') }}" class="btn btn-primary btn-nav">
             Get Started
           </a>
         </nav>
+        {% endif %}
       </header>
       {% endblock %}
       <main>

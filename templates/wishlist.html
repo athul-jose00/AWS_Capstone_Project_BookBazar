@@ -1,0 +1,18 @@
+{% extends "base.html" %} {% block title %}Wishlist - BookBazaar{% endblock %}
+{% block content %}
+<div class="dashboard-layout">
+  {% include '_customer_sidebar.html' %}
+  <div class="dashboard-container" style="max-width: 900px; padding: 1rem">
+    <h1>Your Wishlist</h1>
+    {% if items and items|length > 0 %}
+    <ul>
+      {% for it in items %}
+      <li>{{ it.title }} — {{ it.author }}</li>
+      {% endfor %}
+    </ul>
+    {% else %}
+    <p>Your wishlist is empty.</p>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

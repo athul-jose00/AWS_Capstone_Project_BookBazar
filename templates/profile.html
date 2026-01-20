@@ -1,0 +1,13 @@
+{% extends "base.html" %} {% block title %}Your Profile - BookBazaar{% endblock
+%} {% block content %}
+<div class="dashboard-layout">
+  {% include '_customer_sidebar.html' %}
+
+  <div class="dashboard-container" style="max-width: 900px; padding: 1rem">
+    <h1>Your Profile</h1>
+    <p>Name: {{ user.name if user.name else '—' }}</p>
+    <p>Email: {{ user.email }}</p>
+    <p>This is a placeholder profile page. Replace with your own content.</p>
+  </div>
+</div>
+{% endblock %}

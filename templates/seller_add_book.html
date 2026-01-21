@@ -1,0 +1,43 @@
+{% extends 'base.html' %}
+{% block title %}Add Book - Seller - BookBazaar{% endblock %}
+{% block content %}
+<div class="dashboard-layout">
+  {% include '_seller_sidebar.html' %}
+  <div class="dashboard-container">
+    <div class="profile-panel">
+      <h1>{% if book %}Edit Book{% else %}Add New Book{% endif %}</h1>
+      <form action="{% if book %}{{ url_for('seller_edit_book', book_id=book.id) }}{% else %}{{ url_for('seller_add_book') }}{% endif %}" method="POST" class="address-form">
+        <div class="form-grid">
+          <div>
+            <label>Title</label>
+            <input type="text" name="title" required value="{% if book %}{{ book.title }}{% endif %}" />
+          </div>
+          <div>
+            <label>Author</label>
+            <input type="text" name="author" required value="{% if book %}{{ book.author }}{% endif %}" />
+          </div>
+          <div>
+            <label>Price</label>
+            <input type="text" name="price" required value="{% if book %}{{ "%.2f"|format(book.price) }}{% endif %}" />
+          </div>
+          <div>
+            <label>Genre</label>
+            <input type="text" name="genre" value="{% if book %}{{ book.genre }}{% endif %}" />
+          </div>
+          <div class="form-field full">
+            <label>Summary</label>
+            <textarea name="summary" rows="4">{% if book %}{{ book.summary }}{% endif %}</textarea>
+          </div>
+          <div class="form-field full">
+            <label>Cover Image URL (optional)</label>
+            <input type="text" name="cover_url" value="{% if book %}{{ book.cover_url }}{% endif %}" />
+          </div>
+        </div>
+        <div class="form-actions">
+          <button class="btn btn-primary" type="submit">{% if book %}Save Changes{% else %}Add Book{% endif %}</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

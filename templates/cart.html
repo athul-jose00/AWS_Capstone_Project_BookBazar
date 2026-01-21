@@ -24,26 +24,53 @@
         </thead>
         <tbody>
           {% for it in items %}
-          <tr>
-            <td>
+          <tr data-book-id="{{ it.id }}">
+            <td class="cart-book-cell">
               <div class="cart-book-title">{{ it.title }}</div>
               <div class="cart-book-meta">by {{ it.author }}</div>
             </td>
             <td>${{ "%.2f"|format(it.price) }}</td>
             <td>
               <div class="qty-pill">
-                <button aria-label="Decrease qty">−</button>
-                <div>{{ it.qty }}</div>
-                <button aria-label="Increase qty">+</button>
+                <button
+                  class="qty-decrease"
+                  aria-label="Decrease qty"
+                  data-book-id="{{ it.id }}"
+                >
+                  −
+                </button>
+                <div class="qty-value">{{ it.qty }}</div>
+                <button
+                  class="qty-increase"
+                  aria-label="Increase qty"
+                  data-book-id="{{ it.id }}"
+                >
+                  +
+                </button>
               </div>
             </td>
-            <td>${{ "%.2f"|format(it.subtotal) }}</td>
+            <td class="line-subtotal">${{ "%.2f"|format(it.subtotal) }}</td>
+            <td class="cart-remove-cell">
+              <button
+                class="cart-remove-cross"
+                data-book-id="{{ it.id }}"
+                aria-label="Remove from cart"
+              >
+                &times;
+              </button>
+              <button
+                class="btn btn-ghost cart-remove"
+                data-book-id="{{ it.id }}"
+              >
+                Remove
+              </button>
+            </td>
           </tr>
           {% endfor %}
         </tbody>
         <tfoot>
           <tr class="cart-total-row">
-            <td colspan="3" style="text-align: right">Total</td>
+            <td colspan="4" style="text-align: right">Total</td>
             <td style="">${{ "%.2f"|format(total) }}</td>
           </tr>
         </tfoot>
@@ -53,7 +80,9 @@
         <a href="{{ url_for('dashboard') }}" class="btn btn-ghost"
           >Continue Shopping</a
         >
-        <button class="btn-checkout">Proceed to Checkout</button>
+        <a href="{{ url_for('payment') }}" class="btn-checkout"
+          >Proceed to Checkout</a
+        >
       </div>
       {% else %}
       <p>Your cart is empty.</p>

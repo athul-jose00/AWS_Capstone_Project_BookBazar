@@ -1,0 +1,205 @@
+{% extends "base.html" %} {% block title %}Checkout - BookBazaar{% endblock %}
+{% block extra_css %}
+<style>
+  .payment-panel {
+    background: var(--white);
+    padding: 20px;
+    border-radius: 12px;
+    box-shadow: var(--shadow-sm);
+    max-width: 900px;
+  }
+  .addr-row {
+    display: flex;
+    gap: 1rem;
+    align-items: flex-start;
+    margin-bottom: 0.75rem;
+  }
+  .addr-card {
+    border: 1px solid #eef2f3;
+    padding: 12px;
+    border-radius: 8px;
+    flex: 1;
+  }
+  .addr-card.selected {
+    border-color: var(--accent-teal);
+    box-shadow: 0 6px 18px rgba(24, 169, 153, 0.06);
+  }
+  .form-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.75rem;
+  }
+  .form-row {
+    margin-bottom: 0.75rem;
+  }
+  input[type="text"],
+  input[type="tel"],
+  input[type="email"] {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #e6e6e6;
+    border-radius: 8px;
+  }
+  label {
+    font-weight: 600;
+    font-size: 0.95rem;
+    display: block;
+    margin-bottom: 6px;
+  }
+  .actions {
+    display: flex;
+    gap: 1rem;
+    justify-content: flex-end;
+    margin-top: 1rem;
+  }
+</style>
+{% endblock %} {% block content %}
+<div class="dashboard-layout">
+  {% include '_customer_sidebar.html' %}
+  <div class="dashboard-container">
+    <div class="payment-panel">
+      <h2>Checkout — Payment & Shipping</h2>
+      <p>Select shipping address and payment method (Cash on Delivery).</p>
+
+      {% if addresses and addresses|length > 0 %}
+      <form method="post">
+        <div class="addr-row">
+          {% for a in addresses %}
+          <label class="addr-card" data-idx="{{ loop.index0 }}">
+            <input
+              type="radio"
+              name="existing_address"
+              value="{{ loop.index0 }}"
+              style="margin-right: 8px"
+            />
+            <strong>{{ a.name }}</strong><br />
+            {{ a.line1 }}{% if a.line2 %}, {{ a.line2 }}{% endif %}<br />
+            {{ a.city }}{% if a.state %}, {{ a.state }}{% endif %} {{ a.zip
+            }}<br />
+            {{ a.country }}<br />
+            {{ a.phone }}
+          </label>
+          {% endfor %}
+        </div>
+        <hr />
+        <h3>Or enter a new address</h3>
+        <div class="form-grid">
+          <div>
+            <label for="name">Full name</label>
+            <input id="name" name="name" type="text" />
+          </div>
+          <div>
+            <label for="phone">Phone</label>
+            <input id="phone" name="phone" type="tel" />
+          </div>
+          <div style="grid-column: 1 / -1">
+            <label for="line1">Address line 1</label>
+            <input id="line1" name="line1" type="text" />
+          </div>
+          <div style="grid-column: 1 / -1">
+            <label for="line2">Address line 2</label>
+            <input id="line2" name="line2" type="text" />
+          </div>
+          <div>
+            <label for="city">City</label>
+            <input id="city" name="city" type="text" />
+          </div>
+          <div>
+            <label for="state">State</label>
+            <input id="state" name="state" type="text" />
+          </div>
+          <div>
+            <label for="zip">ZIP / Postal</label>
+            <input id="zip" name="zip" type="text" />
+          </div>
+          <div>
+            <label for="country">Country</label>
+            <input id="country" name="country" type="text" />
+          </div>
+        </div>
+        <div style="margin-top: 0.75rem">
+          <label
+            ><input type="checkbox" name="save_address" /> Save this address to
+            my profile</label
+          >
+        </div>
+
+        <div class="actions">
+          <a class="btn btn-ghost" href="{{ url_for('cart') }}">Back to cart</a>
+          <button class="btn btn-primary" type="submit">
+            Place Order (COD)
+          </button>
+        </div>
+      </form>
+      {% else %}
+      <p>No saved addresses found. Please enter shipping address:</p>
+      <form method="post">
+        <div class="form-grid">
+          <div>
+            <label for="name">Full name</label>
+            <input id="name" name="name" type="text" required />
+          </div>
+          <div>
+            <label for="phone">Phone</label>
+            <input id="phone" name="phone" type="tel" required />
+          </div>
+          <div style="grid-column: 1 / -1">
+            <label for="line1">Address line 1</label>
+            <input id="line1" name="line1" type="text" required />
+          </div>
+          <div style="grid-column: 1 / -1">
+            <label for="line2">Address line 2</label>
+            <input id="line2" name="line2" type="text" />
+          </div>
+          <div>
+            <label for="city">City</label>
+            <input id="city" name="city" type="text" required />
+          </div>
+          <div>
+            <label for="state">State</label>
+            <input id="state" name="state" type="text" />
+          </div>
+          <div>
+            <label for="zip">ZIP / Postal</label>
+            <input id="zip" name="zip" type="text" required />
+          </div>
+          <div>
+            <label for="country">Country</label>
+            <input id="country" name="country" type="text" required />
+          </div>
+        </div>
+        <div style="margin-top: 0.75rem">
+          <label
+            ><input type="checkbox" name="save_address" /> Save this address to
+            my profile</label
+          >
+        </div>
+        <div class="actions">
+          <a class="btn btn-ghost" href="{{ url_for('cart') }}">Back to cart</a>
+          <button class="btn btn-primary" type="submit">
+            Place Order (COD)
+          </button>
+        </div>
+      </form>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<script>
+  // small highlight selected address card
+  document.addEventListener("DOMContentLoaded", function () {
+    document.querySelectorAll(".addr-card").forEach(function (card) {
+      card.addEventListener("click", function () {
+        document
+          .querySelectorAll(".addr-card")
+          .forEach((c) => c.classList.remove("selected"));
+        card.classList.add("selected");
+        const idx = card.getAttribute("data-idx");
+        const radio = card.querySelector("input[type=radio]");
+        if (radio) radio.checked = true;
+      });
+    });
+  });
+</script>
+{% endblock %}

@@ -5,13 +5,37 @@
   <div class="dashboard-container" style="max-width: 900px; padding: 1rem">
     <h1>Your Wishlist</h1>
     {% if items and items|length > 0 %}
-    <ul>
+    <div class="wishlist-list">
       {% for it in items %}
-      <li>{{ it.title }} — {{ it.author }}</li>
+      <div class="wishlist-item" data-book-id="{{ it.id }}">
+        <img src="{{ it.cover_url }}" alt="{{ it.title }}" />
+        <div style="flex: 1">
+          <div style="font-weight: 700">{{ it.title }}</div>
+          <div class="meta">by {{ it.author }}</div>
+          <div style="font-weight: 700; color: var(--accent-teal)">
+            ${{ "%.2f"|format(it.price) }}
+          </div>
+        </div>
+        <div class="actions">
+          <form
+            method="post"
+            action="{{ url_for('add_to_cart', book_id=it.id) }}"
+          >
+            <button class="btn-add" type="submit">Add to cart</button>
+          </form>
+          <button
+            class="wishlist-remove-cross-inline"
+            data-book-id="{{ it.id }}"
+            aria-label="Remove from wishlist"
+          >
+            &times;
+          </button>
+        </div>
+      </div>
       {% endfor %}
-    </ul>
+    </div>
     {% else %}
-    <p>Your wishlist is empty.</p>
+    <p class="muted">Your wishlist is empty.</p>
     {% endif %}
   </div>
 </div>

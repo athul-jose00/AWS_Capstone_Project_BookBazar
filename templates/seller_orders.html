@@ -1,0 +1,102 @@
+{% extends 'base.html' %} {% block title %}Seller Orders - BookBazaar{% endblock
+%} {% block content %}
+<div class="dashboard-layout">
+  {% include '_seller_sidebar.html' %}
+  <div class="dashboard-container">
+    <div class="profile-panel">
+      <h1>Your Orders</h1>
+      {% if orders and orders|length > 0 %}
+      <div class="orders-list">
+        {% for o in orders %}
+        <div
+          class="order-card"
+          style="
+            padding: 12px;
+            border: 1px solid #eef2f3;
+            border-radius: 8px;
+            margin-bottom: 10px;
+          "
+        >
+          <div
+            style="
+              display: flex;
+              justify-content: space-between;
+              align-items: center;
+            "
+          >
+            <div>
+              <strong>Order {{ o.id }}</strong>
+              <div class="muted">Placed: {{ o.created_at }}</div>
+            </div>
+            <div>
+              <form
+                action="{{ url_for('seller_update_order_status', order_id=o.id) }}"
+                method="POST"
+              >
+                <select name="status">
+                  <option
+                    value="Placed"
+                    {%
+                    if
+                    o.status=""
+                    ="Placed"
+                    %}selected{%
+                    endif
+                    %}
+                  >
+                    Placed
+                  </option>
+                  <option
+                    value="In Delivery"
+                    {%
+                    if
+                    o.status=""
+                    ="In Delivery"
+                    %}selected{%
+                    endif
+                    %}
+                  >
+                    In Delivery
+                  </option>
+                  <option
+                    value="Delivered"
+                    {%
+                    if
+                    o.status=""
+                    ="Delivered"
+                    %}selected{%
+                    endif
+                    %}
+                  >
+                    Delivered
+                  </option>
+                </select>
+                <button class="btn" type="submit">Update</button>
+              </form>
+            </div>
+          </div>
+          <div style="margin-top: 10px">
+            <div>
+              <strong>Buyer:</strong> {{ o.buyer.name }} ({{ o.buyer.email }})
+            </div>
+            <div><strong>Items:</strong></div>
+            <ul>
+              {% for it in o.items %}
+              <li>
+                {{ it.qty }} x {{ it.title }} — ${{ "%.2f"|format(it.subtotal)
+                }}
+              </li>
+              {% endfor %}
+            </ul>
+            <div><strong>Total:</strong> ${{ "%.2f"|format(o.total) }}</div>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+      {% else %}
+      <p>No orders received yet.</p>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}

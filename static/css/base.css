@@ -298,6 +298,176 @@ ul {
   font-size: 16px;
 }
 
+/* small badge shown next to wishlist link in customer sidebar */
+.customer-sidebar .sb-badge {
+  margin-left: 8px;
+  background: var(--accent-teal);
+  color: white;
+  font-size: 0.85rem;
+  font-weight: 700;
+  padding: 4px 8px;
+  border-radius: 999px;
+}
+
+/* Global cart button and badge used in header (keeps header consistent across pages) */
+.cart-btn {
+  position: relative;
+  font-size: 1.2rem;
+  color: var(--primary-dark);
+  cursor: pointer;
+  background: none;
+  border: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.cart-btn .cart-badge {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  background-color: var(--accent-teal);
+  color: white;
+  font-size: 0.7rem;
+  font-weight: bold;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Profile page styles */
+.profile-panel {
+  background: var(--white);
+  padding: 28px;
+  border-radius: 12px;
+  box-shadow: var(--shadow-sm);
+  max-width: 980px;
+}
+.profile-header h1 {
+  margin: 0 0 8px 0;
+  font-size: 1.6rem;
+}
+.profile-header .muted {
+  color: var(--text-light);
+  margin-top: 6px;
+}
+.addresses-section h2,
+.add-address h2 {
+  margin-top: 18px;
+  margin-bottom: 12px;
+}
+.addresses-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 12px;
+}
+.addr-card {
+  background: #fbfcfd;
+  border: 1px solid #eef2f3;
+  padding: 14px;
+  border-radius: 10px;
+}
+.addr-title {
+  font-weight: 700;
+  margin-bottom: 6px;
+}
+.addr-line {
+  color: var(--text-light);
+  font-size: 0.95rem;
+  margin-bottom: 2px;
+}
+
+.address-form .form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+.address-form .form-field.full {
+  grid-column: 1 / -1;
+}
+.btn-add-address {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  background: var(--accent-teal);
+  color: white;
+  font-weight: 600;
+  border: none;
+  box-shadow: none;
+  cursor: pointer;
+  transition:
+    transform 0.08s ease,
+    box-shadow 0.08s ease;
+}
+.btn-add-address .add-ico {
+  display: inline-flex;
+  width: 18px;
+  height: 18px;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.12);
+  border-radius: 4px;
+  font-weight: 800;
+}
+.btn-add-address:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 14px rgba(24, 169, 153, 0.08);
+}
+
+/* address form wrapper with smooth reveal */
+.address-form-wrap {
+  max-height: 0;
+  overflow: hidden;
+  transition:
+    max-height 0.32s ease,
+    opacity 0.28s ease;
+  opacity: 0;
+}
+.address-form-wrap.open {
+  max-height: 1600px; /* large enough to reveal whole form */
+  opacity: 1;
+}
+.add-address {
+  margin-bottom: 12px;
+}
+.address-form label {
+  display: block;
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+.address-form input[type="text"],
+.address-form input[type="tel"],
+.address-form input[type="email"] {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid #e6e6e6;
+  border-radius: 8px;
+}
+.form-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 14px;
+}
+
+@media (max-width: 720px) {
+  .address-form .form-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Orders styling */
+.orders-panel {
+  max-width: 980px;
+}
+.order-card .muted {
+  color: var(--text-light);
+  font-size: 0.95rem;
+}
+
 :root {
   --sidebar-active: #1fc7ad; /* lighter teal */
   --sidebar-active-text: #ffffff;
@@ -377,6 +547,39 @@ ul {
   padding: 14px 10px;
   vertical-align: middle;
 }
+.cart-book-cell {
+  position: relative;
+}
+.cart-remove-cell {
+  /* leave default flow so the cross sits adjacent to Subtotal */
+}
+.cart-remove-cross {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  vertical-align: middle;
+  margin-left: 6px; /* slight gap from subtotal */
+  z-index: 6;
+  background: var(--accent-teal);
+  color: var(--white);
+  font-size: 18px;
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  cursor: pointer;
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.12);
+  transition:
+    transform 0.08s ease,
+    box-shadow 0.08s ease;
+}
+.cart-remove-cross:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 26px rgba(0, 0, 0, 0.16);
+}
+.cart-remove-cross:focus {
+  outline: 3px solid rgba(24, 169, 153, 0.18);
+}
 .cart-book-title {
   font-weight: 700;
   color: var(--primary-dark);
@@ -414,6 +617,9 @@ ul {
   border-radius: 10px;
   border: none;
   font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
 @media (max-width: 720px) {
@@ -433,4 +639,260 @@ ul {
     flex-direction: column;
     align-items: stretch;
   }
+}
+
+/* Wishlist styles */
+.wishlist-list {
+  background: var(--white);
+  border-radius: 10px;
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
+}
+.wishlist-item {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  padding: 14px 16px;
+  border-bottom: 1px solid #f1f5f6;
+}
+.wishlist-item:last-child {
+  border-bottom: none;
+}
+.wishlist-item img {
+  width: 72px;
+  height: 104px;
+  object-fit: cover;
+  border-radius: 8px;
+}
+.wishlist-item .meta {
+  color: var(--text-light);
+}
+.wishlist-item .actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.wishlist-item .btn-add {
+  padding: 8px 12px;
+  border-radius: 8px;
+}
+
+/* Inline small remove button placed next to Add-to-cart on wishlist rows */
+.wishlist-remove-cross-inline {
+  background: transparent;
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  color: var(--primary-dark);
+  padding: 8px 10px;
+  border-radius: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  cursor: pointer;
+  transition:
+    background 0.12s ease,
+    transform 0.08s ease;
+}
+.wishlist-remove-cross-inline:hover {
+  background: rgba(0, 0, 0, 0.04);
+  transform: translateY(-1px);
+}
+.wishlist-remove-cross-inline:focus {
+  outline: 2px solid rgba(24, 169, 153, 0.18);
+}
+
+/* Seller books list styling (professional card layout) */
+.seller-books-list {
+  display: grid;
+  gap: 14px;
+  margin-top: 12px;
+}
+.seller-book-card {
+  display: flex;
+  gap: 18px;
+  align-items: center;
+  padding: 16px;
+  background: var(--white);
+  border-radius: 12px;
+  box-shadow: var(--shadow-sm);
+}
+.seller-book-card img {
+  width: 96px;
+  height: 140px;
+  object-fit: cover;
+  border-radius: 8px;
+  flex-shrink: 0;
+}
+.seller-book-info {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex: 1;
+}
+.seller-book-info .muted {
+  color: var(--text-light);
+}
+.seller-book-actions {
+  margin-top: 8px;
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+/* New button variants for forms inside panels */
+.btn-outline {
+  background: transparent;
+  color: var(--primary-dark);
+  border: 1px solid #e6e6e6;
+  padding: 8px 12px;
+  border-radius: 10px;
+  font-weight: 700;
+}
+.btn-outline:hover {
+  background: #f7faf9;
+  transform: translateY(-2px);
+}
+
+.btn-danger {
+  background: transparent;
+  color: #ef4444;
+  border: 1px solid rgba(239, 68, 68, 0.12);
+  padding: 8px 14px;
+  border-radius: 20px;
+  font-weight: 700;
+}
+.btn-danger:hover {
+  background: rgba(239, 68, 68, 0.06);
+  transform: translateY(-2px);
+}
+
+@media (max-width: 720px) {
+  .wishlist-item .actions {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
+
+/* Modal styles for book details */
+.modal {
+  position: fixed;
+  inset: 0;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 1400;
+}
+.modal[aria-hidden="false"] {
+  display: flex;
+}
+.modal-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+}
+.modal-dialog {
+  position: relative;
+  background: var(--white);
+  width: min(980px, 96%);
+  max-height: 90vh;
+  overflow: auto;
+  border-radius: 12px;
+  box-shadow: var(--shadow-lg);
+  padding: 18px;
+  display: flex;
+}
+.modal-close {
+  position: absolute;
+  top: 10px;
+  right: 12px;
+  border: none;
+  background: transparent;
+  font-size: 22px;
+  cursor: pointer;
+}
+.modal-body {
+  display: flex;
+  gap: 18px;
+  align-items: flex-start;
+}
+.modal-cover img {
+  width: 220px;
+  height: 320px;
+  object-fit: cover;
+  border-radius: 8px;
+}
+.modal-info {
+  flex: 1;
+}
+.modal-info h3 {
+  margin: 0 0 6px 0;
+  font-size: 1.25rem;
+}
+.modal-author {
+  color: var(--text-light);
+  margin-bottom: 8px;
+}
+.modal-price {
+  font-weight: 800;
+  color: var(--accent-teal);
+  margin-bottom: 12px;
+}
+.modal-summary {
+  color: #444;
+  margin-bottom: 12px;
+}
+.modal-seller .muted {
+  margin-top: 6px;
+  color: var(--text-light);
+}
+.modal-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 12px;
+  align-items: center;
+}
+.modal-add-cart .btn-add {
+  padding: 8px 12px;
+  border-radius: 8px;
+}
+.modal-wishlist {
+  padding: 8px 12px;
+  border-radius: 8px;
+}
+.modal-wishlist {
+  background: transparent;
+  border: 1.5px solid var(--accent-teal);
+  color: var(--accent-teal);
+  font-weight: 700;
+  padding: 8px 12px;
+  border-radius: 8px;
+}
+.modal-wishlist:hover {
+  background: rgba(24, 169, 153, 0.06);
+}
+
+@media (max-width: 720px) {
+  .modal-body {
+    flex-direction: column;
+    align-items: center;
+  }
+  .modal-cover img {
+    width: 180px;
+    height: 260px;
+  }
+}
+
+/* Profile panel centering and card polish */
+.dashboard-container {
+  flex: 1;
+}
+.profile-panel {
+  max-width: 760px;
+  margin: 0 auto;
+}
+.profile-header h1 {
+  font-size: 1.5rem;
+}
+.addresses-grid {
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
 }

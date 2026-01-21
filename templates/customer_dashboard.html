@@ -214,6 +214,9 @@
   .card-heart.hearted {
     background: var(--sidebar-active);
     color: white;
+    /* keep heart visible and in-place when user has hearted a book */
+    opacity: 1;
+    transform: translateY(0);
   }
 
   .book-info {
@@ -363,9 +366,13 @@
       {% for book in books %}
       <article
         class="book-card"
+        data-book-id="{{ book.id }}"
         data-title="{{ book.title|lower }}"
         data-author="{{ book.author|lower }}"
         data-genre="{{ book.genre }}"
+        data-summary="{{ book.summary|e }}"
+        data-seller-name="{{ book.seller.name if book.seller }}"
+        data-seller-contact="{{ book.seller.contact if book.seller }}"
       >
         <div class="book-cover">
           <img src="{{ book.cover_url }}" alt="{{ book.title }}" />
@@ -398,6 +405,40 @@
       </article>
       {% endfor %}
     </section>
+
+    <!-- Book details modal -->
+    <div id="book-modal" class="modal" aria-hidden="true">
+      <div class="modal-overlay" data-close></div>
+      <div
+        class="modal-dialog"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="modal-title"
+      >
+        <button class="modal-close" aria-label="Close">&times;</button>
+        <div class="modal-body">
+          <div class="modal-cover"><img src="" alt="" /></div>
+          <div class="modal-info">
+            <h3 id="modal-title">Title</h3>
+            <div class="modal-author">by <span id="modal-author"></span></div>
+            <div class="modal-price" id="modal-price"></div>
+            <p class="modal-summary" id="modal-summary"></p>
+            <div class="modal-seller">
+              <strong>Seller:</strong> <span id="modal-seller"></span>
+              <div class="muted" id="modal-seller-contact"></div>
+            </div>
+            <div class="modal-actions">
+              <form method="post" class="modal-add-cart" action="">
+                <button class="btn-add" type="submit">Add to cart</button>
+              </form>
+              <button class="btn btn-ghost modal-wishlist" data-book-id="">
+                Add to wishlist
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 
   <script>

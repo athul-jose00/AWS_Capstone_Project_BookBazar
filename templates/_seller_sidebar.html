@@ -1,32 +1,21 @@
-<aside class="customer-sidebar" aria-label="Customer sidebar">
-  <nav aria-label="Customer menu">
+<aside class="customer-sidebar" aria-label="Seller sidebar">
+  <nav aria-label="Seller menu">
     <ul>
       <li>
-        <a href="{{ url_for('browse') }}" class="sb-item" id="sb-browse">
+        <a
+          href="{{ url_for('seller_dashboard') }}"
+          class="sb-item"
+          id="sb-books"
+        >
           <span class="sb-icon"><i class="fas fa-book"></i></span>
-          <span class="sb-label">Browse Books</span>
+          <span class="sb-label">Your Books</span>
         </a>
       </li>
 
       <li>
-        <a href="{{ url_for('profile') }}" class="sb-item" id="sb-profile">
-          <span class="sb-icon"><i class="fas fa-user"></i></span>
-          <span class="sb-label">Your Profile</span>
-        </a>
-      </li>
-      <li>
-        <a href="{{ url_for('orders') }}" class="sb-item" id="sb-orders">
+        <a href="{{ url_for('seller_orders') }}" class="sb-item" id="sb-orders">
           <span class="sb-icon"><i class="fas fa-box-open"></i></span>
-          <span class="sb-label">Your Orders</span>
-        </a>
-      </li>
-      <li>
-        <a href="{{ url_for('wishlist') }}" class="sb-item" id="sb-wishlist">
-          <span class="sb-icon"><i class="fas fa-heart"></i></span>
-          <span class="sb-label">Wishlist</span>
-          {% if wishlist_ids and wishlist_ids|length > 0 %}
-          <span class="sb-badge">{{ wishlist_ids|length }}</span>
-          {% endif %}
+          <span class="sb-label">Orders</span>
         </a>
       </li>
     </ul>

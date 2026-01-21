@@ -3,11 +3,106 @@
 <div class="dashboard-layout">
   {% include '_customer_sidebar.html' %}
 
-  <div class="dashboard-container" style="max-width: 900px; padding: 1rem">
-    <h1>Your Profile</h1>
-    <p>Name: {{ user.name if user.name else '—' }}</p>
-    <p>Email: {{ user.email }}</p>
-    <p>This is a placeholder profile page. Replace with your own content.</p>
+  <div class="dashboard-container">
+    <div class="profile-panel">
+      <div class="profile-header">
+        <div>
+          <h1>Your Profile</h1>
+          <div class="muted">
+            Name:
+            <span class="meta">{{ user.name if user.name else '—' }}</span>
+          </div>
+          <div class="muted">
+            Email: <span class="meta">{{ user.email }}</span>
+          </div>
+        </div>
+      </div>
+
+      <section class="addresses-section">
+        <h2>Saved Addresses</h2>
+        {% if addresses and addresses|length > 0 %}
+        <div class="addresses-grid">
+          {% for a in addresses %}
+          <div class="addr-card">
+            <div class="addr-title">{{ a.name }}</div>
+            <div class="addr-line">
+              {{ a.line1 }}{% if a.line2 %}, {{ a.line2 }}{% endif %}
+            </div>
+            <div class="addr-line">
+              {{ a.city }}{% if a.state %}, {{ a.state }}{% endif %} {{ a.zip }}
+            </div>
+            <div class="addr-line">{{ a.country }}</div>
+            <div class="addr-line muted">{{ a.phone }}</div>
+          </div>
+          {% endfor %}
+        </div>
+        {% else %}
+        <p class="muted">No saved addresses yet. Add one below.</p>
+        {% endif %}
+      </section>
+
+      <section class="add-address">
+        <h2>Add Address</h2>
+        <button
+          id="show-add-address"
+          class="btn-add-address"
+          aria-expanded="false"
+          aria-controls="add-address-form"
+        >
+          <span class="add-ico">+</span>
+          <span class="add-text">Add New Address</span>
+        </button>
+        <div id="add-address-form" class="address-form-wrap" aria-hidden="true">
+          <form
+            method="post"
+            action="{{ url_for('add_address_profile') }}"
+            class="address-form"
+          >
+            <div class="form-grid">
+              <div class="form-field">
+                <label for="name">Full name</label>
+                <input id="name" name="name" type="text" />
+              </div>
+              <div class="form-field">
+                <label for="phone">Phone</label>
+                <input id="phone" name="phone" type="tel" />
+              </div>
+              <div class="form-field full">
+                <label for="line1">Address line 1</label>
+                <input id="line1" name="line1" type="text" />
+              </div>
+              <div class="form-field full">
+                <label for="line2">Address line 2</label>
+                <input id="line2" name="line2" type="text" />
+              </div>
+              <div class="form-field">
+                <label for="city">City</label>
+                <input id="city" name="city" type="text" />
+              </div>
+              <div class="form-field">
+                <label for="state">State</label>
+                <input id="state" name="state" type="text" />
+              </div>
+              <div class="form-field">
+                <label for="zip">ZIP / Postal</label>
+                <input id="zip" name="zip" type="text" />
+              </div>
+              <div class="form-field">
+                <label for="country">Country</label>
+                <input id="country" name="country" type="text" />
+              </div>
+            </div>
+            <div class="form-actions">
+              <button class="btn btn-primary" type="submit">
+                Save Address
+              </button>
+            </div>
+          </form>
+        </div>
+      </section>
+    </div>
   </div>
+
+  <!-- Address form toggled by global JS (see static/js/script.js) -->
 </div>
 {% endblock %}

@@ -77,6 +77,106 @@ MOCK_BOOKS = [
     }
 ]
 
+# --- Demo/test data: a sample seller, buyer, two books and one order (for local testing) ---
+demo_seller_email = 'seller_demo@example.com'
+demo_buyer_email = 'buyer_demo@example.com'
+
+# create demo seller account if not present
+if demo_seller_email not in USERS:
+    USERS[demo_seller_email] = {
+        'name': 'Demo Seller',
+        'password': generate_password_hash('seller_demo@example.com'),
+        'role': 'seller',
+        'books': [],
+        'received_orders': [],
+        'wishlist': []
+    }
+
+# create demo buyer account if not present
+if demo_buyer_email not in USERS:
+    USERS[demo_buyer_email] = {
+        'name': 'Demo Buyer',
+        'password': generate_password_hash('buyer_demo@example.com'),
+        'role': 'customer',
+        'cart': {},
+        'orders': [],
+        'addresses': [],
+        'wishlist': []
+    }
+
+# Add two demo books (ids chosen after existing ones)
+_next_id = max((b.get('id', 0) for b in MOCK_BOOKS), default=0) + 1
+demo_book_a = {
+    'id': _next_id,
+    'title': "Demo: Learning Flask",
+    'author': 'Demo Author',
+    'summary': 'A short demo book about building apps with Flask.',
+    'seller': {'name': 'Demo Seller', 'contact': demo_seller_email},
+    'price': 7.00,
+    'genre': 'Programming',
+    'cover_url': 'https://placehold.co/150x220/e0e0e0/333333?text=Flask'
+}
+_next_id += 1
+demo_book_b = {
+    'id': _next_id,
+    'title': "Demo: Web UI Design",
+    'author': 'Design Demo',
+    'summary': 'A demo book about designing simple web UIs.',
+    'seller': {'name': 'Demo Seller', 'contact': demo_seller_email},
+    'price': 15.00,
+    'genre': 'Design',
+    'cover_url': 'https://placehold.co/150x220/e0e0e0/333333?text=Design'
+}
+
+# Append to global catalog and to seller's list
+MOCK_BOOKS.append(demo_book_a)
+MOCK_BOOKS.append(demo_book_b)
+USERS[demo_seller_email].setdefault(
+    'books', []).extend([demo_book_a, demo_book_b])
+
+# Create a demo order from demo buyer purchasing both books
+order_id = 'ORD-DEMO-1'
+order_created = datetime.utcnow().isoformat()
+items = []
+items.append({'id': demo_book_a['id'], 'title': demo_book_a['title'], 'qty': 1,
+             'price': demo_book_a['price'], 'subtotal': demo_book_a['price']})
+items.append({'id': demo_book_b['id'], 'title': demo_book_b['title'], 'qty': 2,
+             'price': demo_book_b['price'], 'subtotal': demo_book_b['price'] * 2})
+total = sum(it['subtotal'] for it in items)
+
+demo_order = {
+    'id': order_id,
+    'created_at': order_created,
+    'status': 'Placed',
+    'items': items,
+    'total': total,
+    'shipping_address': {
+        'name': 'Demo Buyer',
+        'line1': '123 Demo Lane',
+        'city': 'Demo City',
+        'state': 'DM',
+        'zip': '00000',
+        'country': 'Demo'
+    }
+}
+
+# Attach order to buyer's orders
+USERS[demo_buyer_email].setdefault('orders', []).append(demo_order)
+
+# Distribute order entries to the seller's received_orders (grouped per seller)
+seller_payload = {
+    'id': order_id,
+    'original_order_id': order_id,
+    'created_at': order_created,
+    'status': 'Placed',
+    'items': items,
+    'total': total,
+    'buyer': {'email': demo_buyer_email, 'name': 'Demo Buyer'},
+    'shipping_address': demo_order['shipping_address']
+}
+USERS[demo_seller_email].setdefault(
+    'received_orders', []).append(seller_payload)
+
 
 @app.route('/')
 def index():
@@ -106,7 +206,11 @@ def signup():
     USERS[email] = {
         'name': name or '',
         'password': generate_password_hash(password),
-        'role': role
+        'role': role,
+        'cart': {},
+        'wishlist': [],
+        'orders': [],
+        'addresses': []
     }
     # Initialize seller-specific containers
     if role == 'seller':
@@ -145,6 +249,19 @@ def login():
         # restore user's persisted cart into session if present
         stored_cart = USERS.get(email, {}).get('cart', {})
         session['cart'] = stored_cart or {}
+        # restore and merge user's persisted wishlist (preserve any items added while anonymous)
+        stored_wishlist = USERS.get(email, {}).get('wishlist', []) or []
+        session_wishlist = session.get('wishlist', []) or []
+        # merge, preserving order and uniqueness
+        merged = []
+        for k in (session_wishlist + stored_wishlist):
+            if k not in merged:
+                merged.append(k)
+        session['wishlist'] = merged
+        # persist merged back to user store
+        user_obj = USERS.get(email, {})
+        user_obj['wishlist'] = merged
+        USERS[email] = user_obj
         flash('Logged in successfully.', 'success')
         # Redirect sellers to seller dashboard
         if role == 'seller':
@@ -362,6 +479,16 @@ def seller_update_order_status(order_id):
         if o.get('id') == order_id:
             o['status'] = new_status
             updated = True
+            # Also update the buyer's copy of this order so the buyer sees the new status
+            buyer_email = o.get('buyer', {}).get('email')
+            if buyer_email:
+                buyer_obj = USERS.get(buyer_email, {})
+                buyer_orders = buyer_obj.get('orders', [])
+                for bo in buyer_orders:
+                    if bo.get('id') == order_id:
+                        bo['status'] = new_status
+                buyer_obj['orders'] = buyer_orders
+                USERS[buyer_email] = buyer_obj
             break
     seller_obj['received_orders'] = orders
     USERS[email] = seller_obj
@@ -380,7 +507,12 @@ def logout():
         if email:
             user_obj = USERS.get(email, {})
             user_obj['cart'] = session.get('cart', {})
+            # persist wishlist as well
+            user_obj['wishlist'] = session.get('wishlist', [])
             USERS[email] = user_obj
+    # clear session-scoped cart and wishlist to avoid leaking between accounts
+    session.pop('cart', None)
+    session.pop('wishlist', None)
     session.pop('user', None)
     flash('Logged out.', 'success')
     return redirect(url_for('index'))
@@ -736,15 +868,19 @@ def remove_from_cart(book_id):
 
 @app.route('/wishlist/toggle/<int:book_id>', methods=['POST'])
 def toggle_wishlist(book_id):
+    """Toggle wishlist membership for a book.
+
+    Behavior:
+    - If the user is anonymous, modify `session['wishlist']` only.
+    - If the user is logged in, persist the wishlist into `USERS[email]['wishlist']` as well.
+    """
     user = session.get('user')
-    if not user:
-        return jsonify({'error': 'login_required'}), 401
 
     book = _find_book(book_id)
     if not book:
         return jsonify({'error': 'not_found'}), 404
 
-    wishlist = session.get('wishlist', [])
+    wishlist = session.get('wishlist', []) or []
     # store ids as strings for session serialization
     key = str(book_id)
     added = False
@@ -754,7 +890,17 @@ def toggle_wishlist(book_id):
     else:
         wishlist.append(key)
         added = True
+
+    # save back to session
     session['wishlist'] = wishlist
+
+    # if logged-in, persist to user store as well
+    if user:
+        email = user.get('email')
+        if email:
+            user_obj = USERS.get(email, {})
+            user_obj['wishlist'] = wishlist
+            USERS[email] = user_obj
 
     return jsonify({'added': added, 'count': len(wishlist)})
 

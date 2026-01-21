@@ -29,47 +29,11 @@
               <div class="muted">Placed: {{ o.created_at }}</div>
             </div>
             <div>
-              <form
-                action="{{ url_for('seller_update_order_status', order_id=o.id) }}"
-                method="POST"
-              >
+              <form action="{{ url_for('seller_update_order_status', order_id=o.id) }}" method="POST">
                 <select name="status">
-                  <option
-                    value="Placed"
-                    {%
-                    if
-                    o.status=""
-                    ="Placed"
-                    %}selected{%
-                    endif
-                    %}
-                  >
-                    Placed
-                  </option>
-                  <option
-                    value="In Delivery"
-                    {%
-                    if
-                    o.status=""
-                    ="In Delivery"
-                    %}selected{%
-                    endif
-                    %}
-                  >
-                    In Delivery
-                  </option>
-                  <option
-                    value="Delivered"
-                    {%
-                    if
-                    o.status=""
-                    ="Delivered"
-                    %}selected{%
-                    endif
-                    %}
-                  >
-                    Delivered
-                  </option>
+                  <option value="Placed" {% if (o.status or '') == 'Placed' %}selected{% endif %}>Placed</option>
+                  <option value="In Delivery" {% if (o.status or '') == 'In Delivery' %}selected{% endif %}>In Delivery</option>
+                  <option value="Delivered" {% if (o.status or '') == 'Delivered' %}selected{% endif %}>Delivered</option>
                 </select>
                 <button class="btn" type="submit">Update</button>
               </form>
@@ -81,10 +45,9 @@
             </div>
             <div><strong>Items:</strong></div>
             <ul>
-              {% for it in o.items %}
+              {% for it in o['items'] %}
               <li>
-                {{ it.qty }} x {{ it.title }} — ${{ "%.2f"|format(it.subtotal)
-                }}
+                {{ it['qty'] }} x {{ it['title'] }} — ${{ "%.2f"|format(it['subtotal']) }}
               </li>
               {% endfor %}
             </ul>

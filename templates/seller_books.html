@@ -1,0 +1,65 @@
+{% extends 'base.html' %} {% block title %}Your Books - Seller - BookBazaar{%
+endblock %} {% block extra_css %}
+<link rel="stylesheet" href="/static/css/dashboard.css" />
+{% endblock %} {% block content %}
+<div class="dashboard-layout">
+  {% include '_seller_sidebar.html' %}
+  <div class="dashboard-container seller-books">
+    <div class="profile-panel">
+      <div class="profile-header">
+        <h1>Your Books</h1>
+        <p class="muted">Manage your inventory — edit stock and details.</p>
+      </div>
+
+      <div class="seller-actions">
+        <a href="{{ url_for('seller_add_book') }}" class="btn btn-primary">
+          <i class="fas fa-plus"></i>Add New Book
+        </a>
+        <a href="{{ url_for('seller_orders') }}" class="btn btn-ghost">
+          <i class="fas fa-clipboard-list"></i>Manage Orders
+        </a>
+      </div>
+
+      <h2 class="section-title">Your Books</h2>
+      {% if books and books|length > 0 %}
+      <div class="seller-books-list">
+        {% for b in books %}
+        <div class="seller-book-card" data-book-id="{{ b.id }}">
+          <img src="{{ b.cover_url }}" alt="{{ b.title }}" />
+          <div class="seller-book-info">
+            <div class="book-title">{{ b.title }}</div>
+            <div class="muted">by {{ b.author }}</div>
+            <div class="muted">${{ "%.2f"|format(b.price) }}</div>
+            <div class="muted">
+              <i class="fas fa-warehouse"></i>Stock: {{ b.stock or 0 }}
+            </div>
+            <div class="seller-book-actions">
+              <a
+                class="btn btn-outline"
+                href="{{ url_for('seller_edit_book', book_id=b.id) }}"
+                ><i class="fas fa-pen"></i>Edit</a
+              >
+              <form
+                method="POST"
+                class="seller-delete-form"
+                action="{{ url_for('seller_delete_book', book_id=b.id) }}"
+                onsubmit="
+                  return confirm('Delete this book? This cannot be undone.');
+                "
+              >
+                <button class="btn btn-danger" type="submit">
+                  <i class="fas fa-trash"></i>Delete
+                </button>
+              </form>
+            </div>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+      {% else %}
+      <p>No books yet. Add your first book using the button above.</p>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}

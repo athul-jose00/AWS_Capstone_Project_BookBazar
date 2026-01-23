@@ -1,58 +1,48 @@
 {% extends 'base.html' %} {% block title %}Seller Dashboard - BookBazaar{%
-endblock %} {% block content %}
+endblock %} {% block extra_css %}
+<link rel="stylesheet" href="/static/css/dashboard.css" />
+{% endblock %} {% block content %}
 <div class="dashboard-layout">
   {% include '_seller_sidebar.html' %}
-  <div class="dashboard-container">
+  <div class="dashboard-container seller-dashboard">
     <div class="profile-panel">
       <div class="profile-header">
         <h1>Your Seller Dashboard</h1>
         <p class="muted">Manage your books and orders.</p>
       </div>
-      <div
-        style="margin-top: 18px; display: flex; gap: 12px; align-items: center"
-      >
-        <a href="{{ url_for('seller_add_book') }}" class="btn btn-primary"
-          >Add New Book</a
-        >
-        <a href="{{ url_for('seller_orders') }}" class="btn btn-ghost"
-          >Manage Orders</a
-        >
-      </div>
 
-      <h2 style="margin-top: 18px">Your Books</h2>
-      {% if books and books|length > 0 %}
-      <div class="seller-books-list">
-        {% for b in books %}
-        <div class="seller-book-card" data-book-id="{{ b.id }}">
-          <img src="{{ b.cover_url }}" alt="{{ b.title }}" />
-          <div class="seller-book-info">
-            <div style="font-weight: 700">{{ b.title }}</div>
-            <div class="muted">by {{ b.author }}</div>
-            <div class="muted">${{ "%.2f"|format(b.price) }}</div>
-            <div class="seller-book-actions">
-              <a
-                class="btn btn-outline"
-                href="{{ url_for('seller_edit_book', book_id=b.id) }}"
-                >Edit</a
-              >
-              <form
-                method="POST"
-                class="seller-delete-form"
-                action="{{ url_for('seller_delete_book', book_id=b.id) }}"
-                onsubmit="
-                  return confirm('Delete this book? This cannot be undone.');
-                "
-              >
-                <button class="btn btn-danger" type="submit">Delete</button>
-              </form>
-            </div>
-          </div>
+      {% if stats %}
+      <div class="stats-grid">
+        <div class="stats-card">
+          <div class="stat-label"><i class="fas fa-book"></i>Total Books</div>
+          <div class="stat-value">{{ stats.total_books }}</div>
         </div>
-        {% endfor %}
+        <div class="stats-card">
+          <div class="stat-label">
+            <i class="fas fa-box-open"></i>Orders Received
+          </div>
+          <div class="stat-value">{{ stats.total_orders }}</div>
+        </div>
+        <div class="stats-card">
+          <div class="stat-label">
+            <i class="fas fa-dollar-sign"></i>Revenue
+          </div>
+          <div class="stat-value">${{ "%.2f"|format(stats.revenue) }}</div>
+        </div>
       </div>
-      {% else %}
-      <p>No books yet. Add your first book using the button above.</p>
       {% endif %}
+      <div class="seller-actions">
+        <a href="{{ url_for('seller_add_book') }}" class="btn btn-primary">
+          <i class="fas fa-plus"></i>Add New Book
+        </a>
+        <a href="{{ url_for('seller_orders') }}" class="btn btn-ghost">
+          <i class="fas fa-clipboard-list"></i>Manage Orders
+        </a>
+      </div>
+      <p class="muted helper-note">
+        <i class="fas fa-info-circle"></i>Use the "Your Books" menu to manage
+        listings and stock.
+      </p>
     </div>
   </div>
 </div>

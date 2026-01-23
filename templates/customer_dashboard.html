@@ -373,6 +373,7 @@
         data-summary="{{ book.summary|e }}"
         data-seller-name="{{ book.seller.name if book.seller }}"
         data-seller-contact="{{ book.seller.contact if book.seller }}"
+        data-stock="{{ book.stock or 0 }}"
       >
         <div class="book-cover">
           <img src="{{ book.cover_url }}" alt="{{ book.title }}" />
@@ -390,13 +391,16 @@
           <div class="book-author">by {{ book.author }}</div>
 
           <div class="card-footer">
-            <div class="book-price">${{ "%.2f"|format(book.price) }}</div>
+            <div>
+              <div class="book-price">${{ "%.2f"|format(book.price) }}</div>
+              <div class="muted">Stock: {{ book.stock or 0 }}</div>
+            </div>
             <form
               method="post"
               action="{{ url_for('add_to_cart', book_id=book.id) }}"
               style="display: inline"
             >
-              <button class="btn-add" type="submit">
+              <button class="btn-add" type="submit" {% if (book.stock or 0) <= 0 %}disabled{% endif %}>
                 <i class="fas fa-cart-plus"></i> Add
               </button>
             </form>
@@ -426,6 +430,9 @@
             <div class="modal-seller">
               <strong>Seller:</strong> <span id="modal-seller"></span>
               <div class="muted" id="modal-seller-contact"></div>
+            </div>
+            <div style="margin-top:8px">
+              <strong>Stock:</strong> <span id="modal-stock">0</span>
             </div>
             <div class="modal-actions">
               <form method="post" class="modal-add-cart" action="">

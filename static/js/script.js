@@ -338,6 +338,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const ms = document.getElementById("modal-summary");
     const msel = document.getElementById("modal-seller");
     const mselc = document.getElementById("modal-seller-contact");
+    const mstock = document.getElementById("modal-stock");
     const addCartForm = modal.querySelector(".modal-add-cart");
     const wishBtn = modal.querySelector(".modal-wishlist");
 
@@ -364,6 +365,18 @@ document.addEventListener("DOMContentLoaded", () => {
       mselc.textContent = sellerContact;
       if (addCartForm) addCartForm.action = `/cart/add/${bookId}`;
       if (wishBtn) wishBtn.dataset.bookId = bookId;
+
+      // populate stock info and disable modal add if out of stock
+      try {
+        const stock = parseInt(card.dataset.stock || "0", 10);
+        if (mstock) mstock.textContent = stock;
+        if (addCartForm) {
+          const btn = addCartForm.querySelector("button[type=submit]");
+          if (btn) btn.disabled = stock <= 0;
+        }
+      } catch (err) {
+        // ignore
+      }
 
       // set initial wishlist button label based on card heart state
       try {

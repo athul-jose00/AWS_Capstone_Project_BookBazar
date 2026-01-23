@@ -1,0 +1,90 @@
+<aside class="customer-sidebar" aria-label="Admin sidebar">
+  <nav aria-label="Admin menu">
+    <ul>
+      <li>
+        <a
+          href="{{ url_for('admin_dashboard') }}"
+          class="sb-item"
+          id="sb-admin"
+        >
+          <span class="sb-icon"><i class="fas fa-tachometer-alt"></i></span>
+          <span class="sb-label">Dashboard</span>
+        </a>
+      </li>
+      <li>
+        <a href="{{ url_for('admin_users') }}" class="sb-item" id="sb-users">
+          <span class="sb-icon"><i class="fas fa-users"></i></span>
+          <span class="sb-label">Users</span>
+        </a>
+      </li>
+      <li>
+        <a href="{{ url_for('admin_books') }}" class="sb-item" id="sb-books">
+          <span class="sb-icon"><i class="fas fa-book"></i></span>
+          <span class="sb-label">Books</span>
+        </a>
+      </li>
+      <li>
+        <a href="{{ url_for('admin_sellers') }}" class="sb-item" id="sb-sellers">
+          <span class="sb-icon"><i class="fas fa-store"></i></span>
+          <span class="sb-label">Sellers</span>
+        </a>
+      </li>
+      <li>
+        <a href="{{ url_for('admin_orders') }}" class="sb-item" id="sb-orders">
+          <span class="sb-icon"><i class="fas fa-shopping-cart"></i></span>
+          <span class="sb-label">Orders</span>
+        </a>
+      </li>
+      <li>
+        <a href="{{ url_for('admin_analytics') }}" class="sb-item" id="sb-analytics">
+          <span class="sb-icon"><i class="fas fa-chart-bar"></i></span>
+          <span class="sb-label">Analytics</span>
+        </a>
+      </li>
+      <li>
+        <a href="{{ url_for('admin_dashboard') }}#admin-actions" class="sb-item" id="sb-actions">
+          <span class="sb-icon"><i class="fas fa-bolt"></i></span>
+          <span class="sb-label">Quick Actions</span>
+        </a>
+      </li>
+      <li>
+        <a href="{{ url_for('admin_dashboard') }}#admin-activity" class="sb-item" id="sb-activity">
+          <span class="sb-icon"><i class="fas fa-history"></i></span>
+          <span class="sb-label">Recent Activity</span>
+        </a>
+      </li>
+      <li>
+        <a href="{{ url_for('admin_dashboard') }}#admin-system" class="sb-item" id="sb-system">
+          <span class="sb-icon"><i class="fas fa-info-circle"></i></span>
+          <span class="sb-label">System Info</span>
+        </a>
+      </li>
+    </ul>
+  </nav>
+  <div class="sb-spacer"></div>
+  <div>
+    <a href="{{ url_for('logout') }}" class="sb-item" style="color: #e74c3c">
+      <span class="sb-icon"><i class="fas fa-sign-out-alt"></i></span>
+      <span class="sb-label">Logout</span>
+    </a>
+  </div>
+</aside>
+
+<script>
+  (function () {
+    const items = document.querySelectorAll(".sb-item");
+    if (!items || items.length === 0) return;
+    const path = window.location.pathname;
+    items.forEach((a) => {
+      const href = a.getAttribute("href");
+      if (href && href !== "#" && path.startsWith(href)) {
+        items.forEach((i) => i.classList.remove("active"));
+        a.classList.add("active");
+      }
+      a.addEventListener("click", () => {
+        items.forEach((i) => i.classList.remove("active"));
+        a.classList.add("active");
+      });
+    });
+  })();
+</script>

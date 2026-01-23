@@ -1,0 +1,179 @@
+{% extends 'base.html' %}
+{% block title %}Order Details | Admin Dashboard | BookBazaar{% endblock %}
+{% block body_class %}admin-page{% endblock %}
+{% block extra_css %}
+<link rel="stylesheet" href="/static/css/dashboard.css" />
+<link rel="stylesheet" href="/static/css/admin_dashboard.css" />
+{% endblock %}
+{% block header %}
+<header class="site-header">
+  <a class="logo" href="/"> <i class="fas fa-book-open"></i> BookBazaar </a>
+  <nav class="nav-actions">
+    <span class="nav-link" style="color: var(--accent-teal)">
+      <i class="fas fa-user-shield"></i> {{ user.name }}
+    </span>
+    <a href="{{ url_for('logout') }}" class="btn btn-primary btn-nav">
+      <i class="fas fa-sign-out-alt"></i> Logout
+    </a>
+  </nav>
+</header>
+{% endblock %}
+{% block content %}
+<div class="dashboard-layout">
+  {% include '_admin_sidebar.html' %}
+  <div class="dashboard-container admin-dashboard">
+    <div class="profile-panel">
+      <div class="admin-header">
+        <h1><i class="fas fa-receipt"></i> Order Details</h1>
+        <p class="admin-subtitle">
+          <a href="{{ url_for('admin_orders') }}">&larr; Back to Orders</a>
+        </p>
+      </div>
+
+      <div class="admin-section">
+        <div class="detail-card">
+          <h2>Order Information</h2>
+          <div class="detail-grid">
+            <div class="detail-item">
+              <label>Order ID</label>
+              <p>{{ order.id }}</p>
+            </div>
+            <div class="detail-item">
+              <label>Status</label>
+              <p><span class="badge badge-{{ order.status|lower }}">{{ order.status }}</span></p>
+            </div>
+            <div class="detail-item">
+              <label>Order Date</label>
+              <p>{{ order.created_at[:10] if order.created_at else 'N/A' }}</p>
+            </div>
+            <div class="detail-item">
+              <label>Order Total</label>
+              <p><strong>${{ "%.2f"|format(order.total) }}</strong></p>
+            </div>
+          </div>
+        </div>
+
+        <div class="detail-card">
+          <h2>Customer Information</h2>
+          <div class="detail-grid">
+            <div class="detail-item">
+              <label>Name</label>
+              <p>{{ customer_name }}</p>
+            </div>
+            <div class="detail-item">
+              <label>Email</label>
+              <p>{{ customer_email }}</p>
+            </div>
+            <div class="detail-item">
+              <label colspan="2">
+                <a href="{{ url_for('admin_user_details', email=customer_email) }}" class="btn btn-sm btn-secondary">
+                  <i class="fas fa-user"></i> View Customer Account
+                </a>
+              </label>
+            </div>
+          </div>
+        </div>
+
+        <div class="detail-card">
+          <h2><i class="fas fa-box"></i> Order Items</h2>
+          {% if order.items %}
+          <div class="table-container">
+            <table class="admin-table">
+              <thead>
+                <tr>
+                  <th>Book ID</th>
+                  <th>Title</th>
+                  <th>Quantity</th>
+                  <th>Price</th>
+                  <th>Subtotal</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for item in order.items %}
+                <tr>
+                  <td>{{ item.id }}</td>
+                  <td>{{ item.title }}</td>
+                  <td>{{ item.qty }}</td>
+                  <td>${{ "%.2f"|format(item.price) }}</td>
+                  <td>${{ "%.2f"|format(item.subtotal) }}</td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+          {% else %}
+          <p class="text-muted">No items in this order.</p>
+          {% endif %}
+        </div>
+
+        <div class="detail-card">
+          <h2><i class="fas fa-map-marker-alt"></i> Shipping Address</h2>
+          {% if order.shipping_address %}
+          <div class="address-block">
+            <p><strong>{{ order.shipping_address.name }}</strong></p>
+            <p>{{ order.shipping_address.line1 }}</p>
+            {% if order.shipping_address.line2 %}
+            <p>{{ order.shipping_address.line2 }}</p>
+            {% endif %}
+            <p>{{ order.shipping_address.city }}, {{ order.shipping_address.state }} {{ order.shipping_address.zip }}</p>
+            <p>{{ order.shipping_address.country }}</p>
+          </div>
+          {% else %}
+          <p class="text-muted">No shipping address provided.</p>
+          {% endif %}
+        </div>
+
+        <div class="detail-card">
+          <h2>Order Summary</h2>
+          <div class="summary-block">
+            <div class="summary-row">
+              <span>Subtotal:</span>
+              <span>${{ "%.2f"|format(order.total) }}</span>
+            </div>
+            <div class="summary-row">
+              <span>Shipping:</span>
+              <span>Free</span>
+            </div>
+            <div class="summary-row total">
+              <span>Total:</span>
+              <span>${{ "%.2f"|format(order.total) }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+<style>
+.address-block {
+  background: #f5f5f5;
+  padding: 1rem;
+  border-radius: 4px;
+  line-height: 1.6;
+}
+
+.address-block p {
+  margin: 0.25rem 0;
+}
+
+.summary-block {
+  background: #f5f5f5;
+  padding: 1rem;
+  border-radius: 4px;
+}
+
+.summary-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.summary-row.total {
+  font-weight: bold;
+  font-size: 1.1rem;
+  border-bottom: none;
+}
+</style>

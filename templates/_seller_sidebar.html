@@ -5,8 +5,15 @@
         <a
           href="{{ url_for('seller_dashboard') }}"
           class="sb-item"
-          id="sb-books"
+          id="sb-dashboard"
         >
+          <span class="sb-icon"><i class="fas fa-tachometer-alt"></i></span>
+          <span class="sb-label">Dashboard</span>
+        </a>
+      </li>
+
+      <li>
+        <a href="{{ url_for('seller_books') }}" class="sb-item" id="sb-books">
           <span class="sb-icon"><i class="fas fa-book"></i></span>
           <span class="sb-label">Your Books</span>
         </a>

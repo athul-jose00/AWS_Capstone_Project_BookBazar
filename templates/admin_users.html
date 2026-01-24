@@ -1,11 +1,9 @@
-{% extends 'base.html' %}
-{% block title %}Manage Users | Admin Dashboard | BookBazaar{% endblock %}
-{% block body_class %}admin-page{% endblock %}
-{% block extra_css %}
+{% extends 'base.html' %} {% block title %}Manage Users | Admin Dashboard |
+BookBazaar{% endblock %} {% block body_class %}admin-page{% endblock %} {% block
+extra_css %}
 <link rel="stylesheet" href="/static/css/dashboard.css" />
 <link rel="stylesheet" href="/static/css/admin_dashboard.css" />
-{% endblock %}
-{% block header %}
+{% endblock %} {% block header %}
 <header class="site-header">
   <a class="logo" href="/"> <i class="fas fa-book-open"></i> BookBazaar </a>
   <nav class="nav-actions">
@@ -17,25 +15,26 @@
     </a>
   </nav>
 </header>
-{% endblock %}
-{% block content %}
+{% endblock %} {% block content %}
 <div class="dashboard-layout">
   {% include '_admin_sidebar.html' %}
   <div class="dashboard-container admin-dashboard">
     <div class="profile-panel">
       <div class="admin-header">
         <h1><i class="fas fa-users"></i> Manage Users</h1>
-        <p class="admin-subtitle">View, search, and manage user accounts on the platform</p>
+        <p class="admin-subtitle">
+          View, search, and manage user accounts on the platform
+        </p>
       </div>
 
       <div class="admin-section">
         <div class="search-filter-bar">
           <form method="GET" class="filter-form">
             <div class="form-group">
-              <input 
-                type="text" 
-                name="search" 
-                placeholder="Search by email or name..." 
+              <input
+                type="text"
+                name="search"
+                placeholder="Search by email or name..."
                 value="{{ search }}"
                 class="form-control"
               />
@@ -43,8 +42,29 @@
             <div class="form-group">
               <select name="role" class="form-control">
                 <option value="">All Roles</option>
-                <option value="customer" {% if role_filter == 'customer' %}selected{% endif %}>Customers</option>
-                <option value="seller" {% if role_filter == 'seller' %}selected{% endif %}>Sellers</option>
+                <option
+                  value="customer"
+                  {%
+                  if
+                  role_filter
+                  =="customer"
+                  %}selected{%
+                  endif
+                  %}
+                >
+                  Customers
+                </option>
+                <option
+                  value="seller"
+                  {%
+                  if
+                  role_filter=="seller"
+                  %}selected{%
+                  endif
+                  %}
+                >
+                  Sellers
+                </option>
               </select>
             </div>
             <button type="submit" class="btn btn-primary">
@@ -74,20 +94,30 @@
                 <td>
                   <span class="badge badge-{{ user_item.role }}">
                     {% if user_item.role == 'seller' %}
-                      <i class="fas fa-store"></i> Seller
-                    {% else %}
-                      <i class="fas fa-user"></i> Customer
-                    {% endif %}
+                    <i class="fas fa-store"></i> Seller {% else %}
+                    <i class="fas fa-user"></i> Customer {% endif %}
                   </span>
                 </td>
                 <td>{{ user_item.orders }}</td>
                 <td>{{ user_item.books }}</td>
                 <td>
                   <div class="action-buttons">
-                    <a href="{{ url_for('admin_user_details', email=user_item.email) }}" class="btn btn-sm btn-info">
+                    <a
+                      href="{{ url_for('admin_user_details', email=user_item.email) }}"
+                      class="btn btn-sm btn-info"
+                    >
                       <i class="fas fa-eye"></i> View
                     </a>
-                    <form method="POST" action="{{ url_for('admin_delete_user', email=user_item.email) }}" style="display:inline;" onsubmit="return confirm('Are you sure you want to delete this user?');">
+                    <form
+                      method="POST"
+                      action="{{ url_for('admin_delete_user', email=user_item.email) }}"
+                      style="display: inline"
+                      onsubmit="
+                        return confirm(
+                          'Are you sure you want to delete this user?',
+                        );
+                      "
+                    >
                       <button type="submit" class="btn btn-sm btn-danger">
                         <i class="fas fa-trash"></i> Delete
                       </button>

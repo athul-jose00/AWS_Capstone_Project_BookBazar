@@ -87,35 +87,45 @@ endblock %} {% block body_class %}admin-page{% endblock %} {% block extra_css
             <i class="fas fa-user-plus"></i>
             <h3>Manage Users</h3>
             <p>View, add, or remove user accounts</p>
-            <a href="{{ url_for('admin_users') }}" class="btn btn-secondary">View Users</a>
+            <a href="{{ url_for('admin_users') }}" class="btn btn-secondary"
+              >View Users</a
+            >
           </div>
 
           <div class="action-card">
             <i class="fas fa-book-medical"></i>
             <h3>Manage Books</h3>
             <p>Add, edit, or remove book listings</p>
-            <a href="{{ url_for('admin_books') }}" class="btn btn-secondary">Manage Catalog</a>
+            <a href="{{ url_for('admin_books') }}" class="btn btn-secondary"
+              >Manage Catalog</a
+            >
           </div>
 
           <div class="action-card">
             <i class="fas fa-clipboard-check"></i>
             <h3>Validate Sellers</h3>
             <p>Review and approve seller credentials</p>
-            <a href="{{ url_for('admin_sellers') }}" class="btn btn-secondary">Review Sellers</a>
+            <a href="{{ url_for('admin_sellers') }}" class="btn btn-secondary"
+              >Review Sellers</a
+            >
           </div>
 
           <div class="action-card">
             <i class="fas fa-chart-bar"></i>
             <h3>View Analytics</h3>
             <p>Platform performance and sales metrics</p>
-            <a href="{{ url_for('admin_analytics') }}" class="btn btn-secondary">View Reports</a>
+            <a href="{{ url_for('admin_analytics') }}" class="btn btn-secondary"
+              >View Reports</a
+            >
           </div>
 
           <div class="action-card">
             <i class="fas fa-shopping-cart"></i>
             <h3>View Orders</h3>
             <p>Monitor and manage customer orders</p>
-            <a href="{{ url_for('admin_orders') }}" class="btn btn-secondary">View Orders</a>
+            <a href="{{ url_for('admin_orders') }}" class="btn btn-secondary"
+              >View Orders</a
+            >
           </div>
         </div>
       </div>

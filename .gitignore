@@ -1,2 +1,4 @@
 venv/
 docs/
+.env.local
+test_stock_flows.py

@@ -1,0 +1,864 @@
+from flask import Flask, render_template, request, redirect, url_for, session, flash, jsonify
+from werkzeug.security import generate_password_hash, check_password_hash
+from datetime import datetime
+import os
+import boto3
+import uuid
+from decimal import Decimal
+
+from boto3.dynamodb.conditions import Key, Attr
+from botocore.exceptions import ClientError
+
+app = Flask(__name__)
+app.secret_key = 'bookbazaar-secret-key-2026'
+
+# AWS Configuration
+REGION = 'us-east-1'
+
+dynamodb = boto3.resource('dynamodb', region_name=REGION)
+sns = boto3.client('sns', region_name=REGION)
+
+# DynamoDB Tables 
+users_table = dynamodb.Table('BookBazaar_Users')
+admin_users_table = dynamodb.Table('BookBazaar_AdminUsers')
+books_table = dynamodb.Table('BookBazaar_Books')
+orders_table = dynamodb.Table('BookBazaar_Orders')
+
+# SNS Topic ARN
+SNS_TOPIC_ARN = 'arn:aws:sns:us-east-1:604665149129:aws_capstone_topic'
+
+
+def send_notification(subject, message):
+    try:
+        sns.publish(
+            TopicArn=SNS_TOPIC_ARN,
+            Subject=subject,
+            Message=message
+        )
+    except ClientError as e:
+        print(f"Error sending notification: {e}")
+
+# ==================== PUBLIC ROUTES ====================
+
+
+@app.route('/')
+def index():
+    return render_template('index.html')
+
+
+@app.route('/auth')
+def auth_page():
+    return render_template('auth.html')
+
+
+@app.route('/signup', methods=['POST'])
+def signup():
+    name = request.form.get('name')
+    email = request.form.get('email')
+    password = request.form.get('password')
+    role = request.form.get('role') or 'customer'
+
+    if not email or not password:
+        flash('Email and password are required.', 'error')
+        return redirect(url_for('index'))
+
+    # Check if user exists
+    if role == 'admin':
+        response = admin_users_table.get_item(Key={'email': email})
+        if 'Item' in response:
+            flash('Admin already exists!', 'error')
+            return redirect(url_for('auth_page'))
+
+        admin_users_table.put_item(Item={
+            'email': email,
+            'name': name or '',
+            'password': generate_password_hash(password)
+        })
+        send_notification("New Admin Signup",
+                          f"Admin {name} ({email}) has registered.")
+    else:
+        response = users_table.get_item(Key={'email': email})
+        if 'Item' in response:
+            flash('User already exists!', 'error')
+            return redirect(url_for('auth_page'))
+
+        users_table.put_item(Item={
+            'email': email,
+            'name': name or '',
+            'password': generate_password_hash(password),
+            'role': role,
+            'created_at': datetime.utcnow().isoformat()
+        })
+        send_notification("New User Signup",
+                          f"User {name} ({email}) signed up as {role}.")
+
+    flash('Account created successfully. Please sign in.', 'success')
+    return redirect(url_for('auth_page'))
+
+
+@app.route('/login', methods=['POST'])
+def login():
+    email = request.form.get('email')
+    password = request.form.get('password')
+
+    # Check admin first
+    response = admin_users_table.get_item(Key={'email': email})
+    if 'Item' in response:
+        admin = response['Item']
+        if check_password_hash(admin.get('password', ''), password):
+            session['user'] = {
+                'email': email,
+                'name': admin.get('name', ''),
+                'is_admin': True
+            }
+            send_notification("Admin Login", f"Admin {email} logged in.")
+            flash('Welcome Admin!', 'success')
+            return redirect(url_for('admin_dashboard'))
+
+    # Check regular user
+    response = users_table.get_item(Key={'email': email})
+    if 'Item' in response:
+        user = response['Item']
+        if check_password_hash(user.get('password', ''), password):
+            role = user.get('role', 'customer')
+            session['user'] = {
+                'email': email,
+                'name': user.get('name', ''),
+                'is_admin': False,
+                'role': role
+            }
+            session['cart'] = {}
+            session['wishlist'] = []
+
+            send_notification("User Login", f"User {email} logged in.")
+            flash('Logged in successfully.', 'success')
+
+            if role == 'seller':
+                return redirect(url_for('seller_dashboard'))
+            return redirect(url_for('dashboard'))
+
+    flash('Invalid credentials.', 'error')
+    return redirect(url_for('auth_page'))
+
+
+@app.route('/dashboard')
+def dashboard():
+    user = session.get('user')
+    if not user:
+        return redirect(url_for('index'))
+    if user.get('is_admin'):
+        return redirect(url_for('admin_dashboard'))
+    if user.get('role') == 'seller':
+        return redirect(url_for('seller_dashboard'))
+
+    # Get all books
+    response = books_table.scan()
+    books = response.get('Items', [])
+
+    return render_template('customer_dashboard.html', user=user, books=books)
+
+
+@app.route('/browse')
+def browse():
+    user = session.get('user')
+    response = books_table.scan()
+    books = response.get('Items', [])
+    return render_template('customer_dashboard.html', user=user, books=books)
+
+
+@app.route('/logout')
+def logout():
+    email = session.get('user', {}).get('email', 'Unknown')
+    session.clear()
+    send_notification("User Logout", f"User {email} logged out.")
+    flash('Logged out successfully.', 'success')
+    return redirect(url_for('index'))
+
+# ==================== ADMIN ROUTES ====================
+
+
+@app.route('/admin/dashboard')
+def admin_dashboard():
+    user = session.get('user')
+    if not user or not user.get('is_admin'):
+        flash('Access denied. Admin privileges required.', 'error')
+        return redirect(url_for('index'))
+
+    users = users_table.scan().get('Items', [])
+    books = books_table.scan().get('Items', [])
+    orders = orders_table.scan().get('Items', [])
+
+    total_users = len(users)
+    total_customers = sum(1 for u in users if u.get('role') == 'customer')
+    total_sellers = sum(1 for u in users if u.get('role') == 'seller')
+    total_books = len(books)
+    total_orders = len(orders)
+    total_revenue = sum(float(o.get('total', 0)) for o in orders)
+
+    stats = {
+        'total_users': total_users,
+        'total_customers': total_customers,
+        'total_sellers': total_sellers,
+        'total_books': total_books,
+        'total_orders': total_orders,
+        'total_revenue': round(total_revenue, 2)
+    }
+
+    recent_orders = sorted(orders, key=lambda x: x.get(
+        'created_at', ''), reverse=True)[:5]
+
+    return render_template('admin_dashboard.html', user=user, stats=stats, recent_orders=recent_orders)
+
+
+@app.route('/admin/users')
+def admin_users():
+    user = session.get('user')
+    if not user or not user.get('is_admin'):
+        flash('Access denied.', 'error')
+        return redirect(url_for('index'))
+
+    all_users = users_table.scan().get('Items', [])
+    role_filter = request.args.get('role', 'all')
+
+    if role_filter != 'all':
+        all_users = [u for u in all_users if u.get('role') == role_filter]
+
+    return render_template('admin_users.html', user=user, users=all_users, role_filter=role_filter)
+
+
+@app.route('/admin/user/<email>')
+def admin_user_details(email):
+    user = session.get('user')
+    if not user or not user.get('is_admin'):
+        flash('Access denied.', 'error')
+        return redirect(url_for('index'))
+
+    response = users_table.get_item(Key={'email': email})
+    if 'Item' not in response:
+        flash('User not found.', 'error')
+        return redirect(url_for('admin_users'))
+
+    target_user = response['Item']
+
+    # Get user orders
+    response = orders_table.query(
+        IndexName='buyer_email-index',
+        KeyConditionExpression=Key('buyer_email').eq(email)
+    )
+    user_orders = response.get('Items', [])
+
+    return render_template('admin_user_details.html', user=user, target_user=target_user, orders=user_orders)
+
+
+@app.route('/admin/user/<email>/delete', methods=['POST'])
+def admin_delete_user(email):
+    user = session.get('user')
+    if not user or not user.get('is_admin'):
+        flash('Access denied.', 'error')
+        return redirect(url_for('index'))
+
+    users_table.delete_item(Key={'email': email})
+    send_notification("User Deleted", f"Admin deleted user: {email}")
+    flash('User deleted successfully.', 'success')
+    return redirect(url_for('admin_users'))
+
+
+@app.route('/admin/books')
+def admin_books():
+    user = session.get('user')
+    if not user or not user.get('is_admin'):
+        flash('Access denied.', 'error')
+        return redirect(url_for('index'))
+
+    books = books_table.scan().get('Items', [])
+    genre_filter = request.args.get('genre', 'all')
+
+    if genre_filter != 'all':
+        books = [b for b in books if b.get('genre') == genre_filter]
+
+    return render_template('admin_books.html', user=user, books=books, genre_filter=genre_filter)
+
+
+@app.route('/admin/book/<book_id>', methods=['GET', 'POST'])
+def admin_book_details(book_id):
+    user = session.get('user')
+    if not user or not user.get('is_admin'):
+        flash('Access denied.', 'error')
+        return redirect(url_for('index'))
+
+    response = books_table.get_item(Key={'id': book_id})
+    if 'Item' not in response:
+        flash('Book not found.', 'error')
+        return redirect(url_for('admin_books'))
+
+    book = response['Item']
+
+    if request.method == 'POST':
+        books_table.update_item(
+            Key={'id': book_id},
+            UpdateExpression='SET title = :title, author = :author, price = :price, stock = :stock, genre = :genre, summary = :summary',
+            ExpressionAttributeValues={
+                ':title': request.form.get('title'),
+                ':author': request.form.get('author'),
+                ':price': Decimal(str(request.form.get('price'))),
+                ':stock': int(request.form.get('stock')),
+                ':genre': request.form.get('genre'),
+                ':summary': request.form.get('summary', '')
+            }
+        )
+        send_notification(
+            "Book Updated", f"Admin updated book: {request.form.get('title')}")
+        flash('Book updated successfully.', 'success')
+        return redirect(url_for('admin_book_details', book_id=book_id))
+
+    return render_template('admin_book_details.html', user=user, book=book)
+
+
+@app.route('/admin/book/<book_id>/delete', methods=['POST'])
+def admin_delete_book(book_id):
+    user = session.get('user')
+    if not user or not user.get('is_admin'):
+        flash('Access denied.', 'error')
+        return redirect(url_for('index'))
+
+    books_table.delete_item(Key={'id': book_id})
+    send_notification("Book Deleted", f"Admin deleted book ID: {book_id}")
+    flash('Book deleted successfully.', 'success')
+    return redirect(url_for('admin_books'))
+
+
+@app.route('/admin/sellers')
+def admin_sellers():
+    user = session.get('user')
+    if not user or not user.get('is_admin'):
+        flash('Access denied.', 'error')
+        return redirect(url_for('index'))
+
+    all_users = users_table.scan().get('Items', [])
+    sellers = [u for u in all_users if u.get('role') == 'seller']
+
+    return render_template('admin_sellers.html', user=user, sellers=sellers)
+
+
+@app.route('/admin/seller/<email>/details')
+def admin_seller_details(email):
+    user = session.get('user')
+    if not user or not user.get('is_admin'):
+        flash('Access denied.', 'error')
+        return redirect(url_for('index'))
+
+    response = users_table.get_item(Key={'email': email})
+    if 'Item' not in response or response['Item'].get('role') != 'seller':
+        flash('Seller not found.', 'error')
+        return redirect(url_for('admin_sellers'))
+
+    seller = response['Item']
+
+    # Get seller books
+    response = books_table.scan(
+        FilterExpression=Attr('seller_email').eq(email))
+    seller_books = response.get('Items', [])
+
+    # Get seller orders
+    response = orders_table.query(
+        IndexName='seller_email-index',
+        KeyConditionExpression=Key('seller_email').eq(email)
+    )
+    seller_orders = response.get('Items', [])
+
+    return render_template('admin_seller_details.html', user=user, seller=seller, books=seller_books, orders=seller_orders)
+
+
+@app.route('/admin/orders')
+def admin_orders():
+    user = session.get('user')
+    if not user or not user.get('is_admin'):
+        flash('Access denied.', 'error')
+        return redirect(url_for('index'))
+
+    all_orders = orders_table.scan().get('Items', [])
+    all_orders = sorted(all_orders, key=lambda x: x.get(
+        'created_at', ''), reverse=True)
+
+    status_filter = request.args.get('status', 'all')
+    if status_filter != 'all':
+        all_orders = [o for o in all_orders if o.get(
+            'status') == status_filter]
+
+    return render_template('admin_orders.html', user=user, orders=all_orders, status_filter=status_filter)
+
+
+@app.route('/admin/order/<order_id>')
+def admin_order_details(order_id):
+    user = session.get('user')
+    if not user or not user.get('is_admin'):
+        flash('Access denied.', 'error')
+        return redirect(url_for('index'))
+
+    response = orders_table.get_item(Key={'id': order_id})
+    if 'Item' not in response:
+        flash('Order not found.', 'error')
+        return redirect(url_for('admin_orders'))
+
+    order = response['Item']
+    return render_template('admin_order_details.html', user=user, order=order)
+
+
+@app.route('/admin/analytics')
+def admin_analytics():
+    user = session.get('user')
+    if not user or not user.get('is_admin'):
+        flash('Access denied.', 'error')
+        return redirect(url_for('index'))
+
+    all_users = users_table.scan().get('Items', [])
+    all_books = books_table.scan().get('Items', [])
+    all_orders = orders_table.scan().get('Items', [])
+
+    total_users = len(all_users)
+    total_customers = sum(1 for u in all_users if u.get('role') == 'customer')
+    total_sellers = sum(1 for u in all_users if u.get('role') == 'seller')
+    total_books = len(all_books)
+    total_orders = len(all_orders)
+
+    total_revenue = sum(float(o.get('total', 0)) for o in all_orders)
+    completed_orders = sum(
+        1 for o in all_orders if o.get('status') == 'Delivered')
+
+    # Genre stats
+    genre_stats = {}
+    for book in all_books:
+        genre = book.get('genre', 'Unknown')
+        genre_stats[genre] = genre_stats.get(genre, 0) + 1
+
+    # Status stats
+    status_stats = {}
+    for order in all_orders:
+        status = order.get('status', 'Unknown')
+        status_stats[status] = status_stats.get(status, 0) + 1
+
+    analytics = {
+        'total_users': total_users,
+        'total_customers': total_customers,
+        'total_sellers': total_sellers,
+        'total_books': total_books,
+        'total_orders': total_orders,
+        'completed_orders': completed_orders,
+        'total_revenue': round(total_revenue, 2),
+        'average_order_value': round(total_revenue / max(total_orders, 1), 2),
+        'genre_stats': genre_stats,
+        'status_stats': status_stats
+    }
+
+    return render_template('admin_analytics.html', user=user, analytics=analytics)
+
+# ==================== SELLER ROUTES ====================
+
+
+@app.route('/seller/dashboard')
+def seller_dashboard():
+    user = session.get('user')
+    if not user or user.get('role') != 'seller':
+        flash('Access denied. Seller account required.', 'error')
+        return redirect(url_for('index'))
+
+    email = user.get('email')
+
+    # Get seller books
+    response = books_table.scan(
+        FilterExpression=Attr('seller_email').eq(email))
+    seller_books = response.get('Items', [])
+
+    # Get seller orders
+    response = orders_table.query(
+        IndexName='seller_email-index',
+        KeyConditionExpression=Key('seller_email').eq(email)
+    )
+    seller_orders = sorted(response.get('Items', []),
+                           key=lambda x: x.get('created_at', ''), reverse=True)
+
+    total_books = len(seller_books)
+    total_orders = len(seller_orders)
+    revenue = sum(float(o.get('total', 0)) for o in seller_orders)
+
+    stats = {
+        'total_books': total_books,
+        'total_orders': total_orders,
+        'revenue': round(revenue, 2)
+    }
+
+    return render_template('seller_dashboard.html', user=user, books=seller_books, orders=seller_orders, stats=stats)
+
+
+@app.route('/seller/books')
+def seller_books():
+    user = session.get('user')
+    if not user or user.get('role') != 'seller':
+        flash('Access denied.', 'error')
+        return redirect(url_for('index'))
+
+    email = user.get('email')
+    response = books_table.scan(
+        FilterExpression=Attr('seller_email').eq(email))
+    seller_books_list = response.get('Items', [])
+
+    return render_template('seller_books.html', user=user, books=seller_books_list)
+
+
+@app.route('/seller/add-book', methods=['GET', 'POST'])
+def seller_add_book():
+    user = session.get('user')
+    if not user or user.get('role') != 'seller':
+        flash('Access denied.', 'error')
+        return redirect(url_for('index'))
+
+    if request.method == 'POST':
+        book_id = str(uuid.uuid4())
+        email = user.get('email')
+
+        books_table.put_item(Item={
+            'id': book_id,
+            'title': request.form.get('title'),
+            'author': request.form.get('author'),
+            'summary': request.form.get('summary', ''),
+            'seller_name': user.get('name', ''),
+            'seller_email': email,
+            'price': Decimal(str(request.form.get('price'))),
+            'genre': request.form.get('genre'),
+            'cover_url': request.form.get('cover_url', 'https://placehold.co/150x220/e0e0e0/333333?text=Book'),
+            'stock': int(request.form.get('stock')),
+            'created_at': datetime.utcnow().isoformat()
+        })
+
+        send_notification("New Book Added",
+                          f"Seller {email} added: {request.form.get('title')}")
+        flash('Book added successfully!', 'success')
+        return redirect(url_for('seller_books'))
+
+    return render_template('seller_add_book.html', user=user)
+
+
+@app.route('/seller/orders')
+def seller_orders():
+    user = session.get('user')
+    if not user or user.get('role') != 'seller':
+        flash('Access denied.', 'error')
+        return redirect(url_for('index'))
+
+    email = user.get('email')
+    response = orders_table.query(
+        IndexName='seller_email-index',
+        KeyConditionExpression=Key('seller_email').eq(email)
+    )
+    orders = response.get('Items', [])
+
+    return render_template('seller_orders.html', user=user, orders=orders)
+
+# ==================== CUSTOMER ROUTES ====================
+
+
+@app.route('/cart')
+def cart():
+    user = session.get('user')
+    if not user:
+        flash('Please sign in.', 'error')
+        return redirect(url_for('auth_page'))
+
+    cart_data = session.get('cart', {})
+    cart_items = []
+    total = 0.0
+
+    for book_id, qty in cart_data.items():
+        response = books_table.get_item(Key={'id': book_id})
+        if 'Item' in response:
+            book = response['Item']
+            qty = int(qty)
+            subtotal = qty * float(book.get('price', 0))
+            total += subtotal
+            cart_items.append({
+                'book': book,
+                'qty': qty,
+                'subtotal': subtotal
+            })
+
+    return render_template('cart.html', user=user, cart_items=cart_items, total=round(total, 2))
+
+
+@app.route('/cart/add/<book_id>', methods=['POST'])
+def add_to_cart(book_id):
+    user = session.get('user')
+    if not user:
+        return jsonify({'error': 'Please sign in'}), 401
+
+    cart = session.get('cart', {})
+    cart[book_id] = cart.get(book_id, 0) + 1
+    session['cart'] = cart
+
+    cart_count = sum(int(q) for q in cart.values())
+    return jsonify({'success': True, 'count': cart_count})
+
+
+@app.route('/cart/update/<book_id>', methods=['POST'])
+def update_cart(book_id):
+    user = session.get('user')
+    if not user:
+        return jsonify({'error': 'Please sign in'}), 401
+
+    qty = request.json.get('qty', 0)
+    cart = session.get('cart', {})
+
+    if qty <= 0:
+        cart.pop(book_id, None)
+    else:
+        cart[book_id] = qty
+
+    session['cart'] = cart
+    return jsonify({'success': True})
+
+
+@app.route('/cart/remove/<book_id>', methods=['POST'])
+def remove_from_cart(book_id):
+    user = session.get('user')
+    if not user:
+        return jsonify({'error': 'Please sign in'}), 401
+
+    cart = session.get('cart', {})
+    cart.pop(book_id, None)
+    session['cart'] = cart
+
+    return jsonify({'success': True})
+
+
+@app.route('/wishlist/toggle/<book_id>', methods=['POST'])
+def toggle_wishlist(book_id):
+    user = session.get('user')
+    if not user:
+        return jsonify({'error': 'Please sign in'}), 401
+
+    wishlist = session.get('wishlist', [])
+
+    if book_id in wishlist:
+        wishlist.remove(book_id)
+        added = False
+    else:
+        wishlist.append(book_id)
+        added = True
+
+    session['wishlist'] = wishlist
+    return jsonify({'added': added, 'count': len(wishlist)})
+
+
+@app.route('/wishlist')
+def wishlist():
+    user = session.get('user')
+    if not user:
+        return redirect(url_for('index'))
+
+    wishlist_ids = session.get('wishlist', [])
+    wishlist_items = []
+
+    for book_id in wishlist_ids:
+        response = books_table.get_item(Key={'id': book_id})
+        if 'Item' in response:
+            wishlist_items.append(response['Item'])
+
+    return render_template('wishlist.html', user=user, items=wishlist_items)
+
+
+@app.route('/profile')
+def profile():
+    user = session.get('user')
+    if not user:
+        return redirect(url_for('index'))
+
+    email = user.get('email')
+    response = users_table.get_item(Key={'email': email})
+    user_data = response.get('Item', {})
+    addresses = user_data.get('addresses', [])
+
+    return render_template('profile.html', user=user, addresses=addresses)
+
+
+@app.route('/profile/address', methods=['POST'])
+def add_address_profile():
+    user = session.get('user')
+    if not user:
+        return redirect(url_for('index'))
+
+    email = user.get('email')
+    addr = {
+        'name': request.form.get('name') or user.get('name') or '',
+        'line1': request.form.get('line1', ''),
+        'line2': request.form.get('line2', ''),
+        'city': request.form.get('city', ''),
+        'state': request.form.get('state', ''),
+        'zip': request.form.get('zip', ''),
+        'country': request.form.get('country', ''),
+        'phone': request.form.get('phone', ''),
+    }
+
+    response = users_table.get_item(Key={'email': email})
+    user_data = response.get('Item', {})
+    addresses = user_data.get('addresses', [])
+    addresses.append(addr)
+
+    users_table.update_item(
+        Key={'email': email},
+        UpdateExpression='SET addresses = :addresses',
+        ExpressionAttributeValues={':addresses': addresses}
+    )
+
+    flash('Address added.', 'success')
+    return redirect(url_for('profile'))
+
+
+@app.route('/payment', methods=['GET', 'POST'])
+def payment():
+    user = session.get('user')
+    if not user:
+        flash('Please sign in.', 'error')
+        return redirect(url_for('auth_page'))
+
+    email = user.get('email')
+    response = users_table.get_item(Key={'email': email})
+    user_data = response.get('Item', {})
+    addresses = user_data.get('addresses', [])
+
+    if request.method == 'POST':
+        addr_id = request.form.get('existing_address')
+        if addr_id:
+            addr = addresses[int(addr_id)]
+        else:
+            addr = {
+                'name': request.form.get('name') or user.get('name') or '',
+                'line1': request.form.get('line1', ''),
+                'line2': request.form.get('line2', ''),
+                'city': request.form.get('city', ''),
+                'state': request.form.get('state', ''),
+                'zip': request.form.get('zip', ''),
+                'country': request.form.get('country', ''),
+                'phone': request.form.get('phone', ''),
+            }
+
+            if request.form.get('save_address'):
+                addresses.append(addr)
+                users_table.update_item(
+                    Key={'email': email},
+                    UpdateExpression='SET addresses = :addresses',
+                    ExpressionAttributeValues={':addresses': addresses}
+                )
+
+        cart = session.get('cart', {})
+        if not cart:
+            flash('Your cart is empty.', 'error')
+            return redirect(url_for('cart'))
+
+        items = []
+        total = 0.0
+        sellers_involved = {}
+
+        for book_id, qty in cart.items():
+            response = books_table.get_item(Key={'id': book_id})
+            if 'Item' not in response:
+                continue
+
+            book = response['Item']
+            qty = int(qty)
+            available = int(book.get('stock', 0))
+
+            if qty > available:
+                flash(f"Not enough stock for '{book.get('title')}'", 'error')
+                return redirect(url_for('cart'))
+
+            subtotal = qty * float(book.get('price', 0))
+            total += subtotal
+
+            item = {
+                'book_id': book_id,
+                'title': book.get('title'),
+                'author': book.get('author'),
+                'qty': qty,
+                'price': float(book.get('price')),
+                'subtotal': subtotal
+            }
+            items.append(item)
+
+            seller_email = book.get('seller_email')
+            if seller_email:
+                if seller_email not in sellers_involved:
+                    sellers_involved[seller_email] = []
+                sellers_involved[seller_email].append(item)
+
+        order_id = f"ORD-{int(datetime.utcnow().timestamp()*1000)}"
+
+        # Create order for each seller
+        for seller_email, seller_items in sellers_involved.items():
+            seller_total = sum(it['subtotal'] for it in seller_items)
+
+            orders_table.put_item(Item={
+                'id': f"{order_id}-{seller_email}",
+                'original_order_id': order_id,
+                'buyer_email': email,
+                'buyer_name': user.get('name', ''),
+                'seller_email': seller_email,
+                'created_at': datetime.utcnow().isoformat(),
+                'status': 'Placed',
+                'items': seller_items,
+                'total': Decimal(str(seller_total)),
+                'shipping_address': addr
+            })
+
+        # Update stock
+        for item in items:
+            response = books_table.get_item(Key={'id': item['book_id']})
+            if 'Item' in response:
+                book = response['Item']
+                new_stock = max(0, int(book.get('stock', 0)) - item['qty'])
+                books_table.update_item(
+                    Key={'id': item['book_id']},
+                    UpdateExpression='SET stock = :stock',
+                    ExpressionAttributeValues={':stock': new_stock}
+                )
+
+        send_notification(
+            "New Order", f"Order {order_id} placed by {email} for ${total:.2f}")
+
+        flash('Order placed (Cash on Delivery).', 'success')
+        session['cart'] = {}
+        return redirect(url_for('orders'))
+
+    return render_template('payment.html', user=user, addresses=addresses)
+
+
+@app.route('/orders')
+def orders():
+    user = session.get('user')
+    if not user:
+        return redirect(url_for('index'))
+
+    email = user.get('email')
+    response = orders_table.query(
+        IndexName='buyer_email-index',
+        KeyConditionExpression=Key('buyer_email').eq(email)
+    )
+    orders_list = sorted(response.get('Items', []),
+                         key=lambda x: x.get('created_at', ''), reverse=True)
+
+    return render_template('orders.html', user=user, orders=orders_list)
+
+
+@app.context_processor
+def cart_context():
+    cart = session.get('cart', {})
+    count = sum(int(q) for q in cart.values())
+    wishlist = session.get('wishlist', [])
+    wishlist_ids = set(wishlist)
+
+    return {
+        'cart_count': count,
+        'wishlist_ids': wishlist_ids
+    }
+
+
+if __name__ == '__main__':
+    app.run(host='0.0.0.0', port=5000, debug=True)

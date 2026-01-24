@@ -313,7 +313,7 @@ def admin_dashboard():
     total_orders = 0
     for user_data in USERS.values():
         total_orders += len(user_data.get('orders', []))
-    
+
     stats = {
         'total_users': len(USERS),
         'total_admins': len(ADMIN_USERS),
@@ -340,7 +340,7 @@ def admin_users():
             continue
         if role_filter and user_data.get('role', 'customer') != role_filter:
             continue
-        
+
         user_info = {
             'email': email,
             'name': user_data.get('name', 'Unknown'),
@@ -367,12 +367,12 @@ def admin_delete_user(email):
         return redirect(url_for('admin_users'))
 
     user_data = USERS[email]
-    
+
     # Remove user's books from MOCK_BOOKS
     user_books = user_data.get('books', [])
     for book in user_books:
         MOCK_BOOKS[:] = [b for b in MOCK_BOOKS if b['id'] != book['id']]
-    
+
     # Delete user
     del USERS[email]
     flash(f'User {email} has been deleted successfully.', 'success')
@@ -401,7 +401,7 @@ def admin_user_details(email):
         'wishlist': user_data.get('wishlist', []),
         'cart': user_data.get('cart', {})
     }
-    
+
     return render_template('admin_user_details.html', user=user, user_info=user_info, user_email=email)
 
 
@@ -424,8 +424,9 @@ def admin_books():
         books_list.append(book)
 
     # Get unique genres
-    genres = sorted(set(b.get('genre', '') for b in MOCK_BOOKS if b.get('genre', '')))
-    
+    genres = sorted(set(b.get('genre', '')
+                    for b in MOCK_BOOKS if b.get('genre', '')))
+
     return render_template('admin_books.html', user=user, books=books_list, genres=genres, search=search, genre_filter=genre_filter)
 
 
@@ -469,11 +470,12 @@ def admin_delete_book(book_id):
 
     title = book['title']
     MOCK_BOOKS[:] = [b for b in MOCK_BOOKS if b['id'] != book_id]
-    
+
     # Remove from sellers' books list
     for user_data in USERS.values():
-        user_data['books'] = [b for b in user_data.get('books', []) if b['id'] != book_id]
-    
+        user_data['books'] = [b for b in user_data.get(
+            'books', []) if b['id'] != book_id]
+
     flash(f'Book "{title}" has been deleted successfully.', 'success')
     return redirect(url_for('admin_books'))
 
@@ -532,7 +534,7 @@ def admin_orders():
         return redirect(url_for('index'))
 
     status_filter = request.args.get('status', '')
-    
+
     all_orders = []
     for email, user_data in USERS.items():
         for order in user_data.get('orders', []):
@@ -552,7 +554,7 @@ def admin_orders():
 
     all_orders.sort(key=lambda x: x['created_at'], reverse=True)
     statuses = sorted(set(o['status'] for o in all_orders))
-    
+
     return render_template('admin_orders.html', user=user, orders=all_orders, statuses=statuses, status_filter=status_filter)
 
 
@@ -593,14 +595,15 @@ def admin_analytics():
 
     # Calculate analytics data
     total_users = len(USERS)
-    total_customers = sum(1 for u in USERS.values() if u.get('role', 'customer') == 'customer')
+    total_customers = sum(1 for u in USERS.values()
+                          if u.get('role', 'customer') == 'customer')
     total_sellers = sum(1 for u in USERS.values() if u.get('role') == 'seller')
     total_books = len(MOCK_BOOKS)
-    
+
     total_revenue = 0.0
     total_orders = 0
     completed_orders = 0
-    
+
     for user_data in USERS.values():
         for order in user_data.get('orders', []):
             total_orders += 1

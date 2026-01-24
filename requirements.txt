@@ -1,1 +1,4 @@
 flask
+werkzeug
+boto3
+botocore

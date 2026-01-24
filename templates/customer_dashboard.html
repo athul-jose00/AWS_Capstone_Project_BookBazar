@@ -1,5 +1,6 @@
 {% extends "base.html" %} {% block title %}BookBazaar | Browse Books{% endblock
 %} {% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/chatbot.css') }}">
 <style>
   /* Customer Dashboard Specific Styles */
   :root {
@@ -474,6 +475,10 @@
     searchInput.addEventListener("input", filterBooks);
     genreFilter.addEventListener("change", filterBooks);
   </script>
+  
+  <!-- Chatbot Script -->
+  <script src="{{ url_for('static', filename='js/chatbot.js') }}"></script>
+  
   <!-- sidebar script moved into included partial -->
   {% endblock %}
 </div>

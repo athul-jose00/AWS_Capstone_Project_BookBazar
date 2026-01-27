@@ -28,8 +28,12 @@ endblock %} {% block extra_css %}
           <img src="{{ b.cover_url }}" alt="{{ b.title }}" />
           <div class="seller-book-info">
             <div class="book-title">{{ b.title }}</div>
-            <div class="muted"><i class="fas fa-user"></i>by {{ b.author }}</div>
-            <div class="muted"><i class="fas fa-dollar-sign"></i>${{ "%.2f"|format(b.price) }}</div>
+            <div class="muted">
+              <i class="fas fa-user"></i>by {{ b.author }}
+            </div>
+            <div class="muted">
+              <i class="fas fa-dollar-sign"></i>${{ "%.2f"|format(b.price) }}
+            </div>
             <div class="muted">
               <i class="fas fa-warehouse"></i>Stock: {{ b.stock or 0 }}
             </div>

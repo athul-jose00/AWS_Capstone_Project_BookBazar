@@ -16,7 +16,8 @@ app = Flask(__name__)
 app.secret_key = 'bookbazaar-secret-key-2026'
 
 # Hugging Face Configuration
-HF_API_KEY = os.environ.get('HF_TOKEN', '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')
+HF_API_KEY = os.environ.get(
+    'HF_TOKEN', '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')
 HF_MODEL = os.environ.get('HF_MODEL', 'Qwen/Qwen2.5-72B-Instruct')
 HF_CLIENT = InferenceClient(api_key=HF_API_KEY) if HF_API_KEY else None
 
@@ -957,10 +958,12 @@ Response: {{"message": "I've added 'The Great Gatsby' to your wishlist!", "recom
                 try:
                     parsed_response = json.loads(ai_response)
                     response_text = parsed_response.get('message', ai_response)
-                    recommended_books = parsed_response.get('recommended_books', [])
+                    recommended_books = parsed_response.get(
+                        'recommended_books', [])
                     action = parsed_response.get('action', 'none')
                     if action == 'add_to_wishlist' and recommended_books:
-                        actions.append({'type': 'add_to_wishlist', 'book_ids': recommended_books})
+                        actions.append(
+                            {'type': 'add_to_wishlist', 'book_ids': recommended_books})
                 except json.JSONDecodeError:
                     response_text = ai_response
                     for book in available_books:
@@ -975,11 +978,13 @@ Response: {{"message": "I've added 'The Great Gatsby' to your wishlist!", "recom
         # Fallback to pattern matching if LLM fails
         if not response_text:
             print(f"[DEBUG] Using fallback pattern matching")
-            fallback_result = generate_smart_fallback(message.lower(), context, available_books, user_wishlist)
+            fallback_result = generate_smart_fallback(
+                message.lower(), context, available_books, user_wishlist)
             response_text = fallback_result['message']
             recommended_books = fallback_result.get('recommended_books', [])
             if fallback_result.get('action') == 'add_to_wishlist':
-                actions.append({'type': 'add_to_wishlist', 'book_ids': recommended_books})
+                actions.append({'type': 'add_to_wishlist',
+                               'book_ids': recommended_books})
 
         # Get full book details for recommended books
         books_to_display = []
@@ -990,7 +995,8 @@ Response: {{"message": "I've added 'The Great Gatsby' to your wishlist!", "recom
             except Exception:
                 continue
             # find in all_books
-            book = next((b for b in all_books if int(b.get('id', 0)) == bid), None)
+            book = next((b for b in all_books if int(
+                b.get('id', 0)) == bid), None)
             if book:
                 books_to_display.append({
                     'id': int(book.get('id')),
@@ -1024,7 +1030,8 @@ def generate_smart_fallback(message, context, available_books, user_wishlist=Non
     # Simple keyword-based recommendations
     if 'recommend' in message or 'suggest' in message or 'something to read' in message:
         # recommend top 3 by stock
-        sorted_books = sorted(available_books, key=lambda b: int(b.get('stock', 0)), reverse=True)
+        sorted_books = sorted(available_books, key=lambda b: int(
+            b.get('stock', 0)), reverse=True)
         for b in sorted_books[:3]:
             try:
                 recommended.append(int(b.get('id')))
@@ -1091,7 +1098,8 @@ def get_book_details(book_id):
     try:
         response = books_table.scan()
         all_books = response.get('Items', [])
-        book = next((b for b in all_books if int(b.get('id', 0)) == int(book_id)), None)
+        book = next((b for b in all_books if int(
+            b.get('id', 0)) == int(book_id)), None)
         if not book:
             return jsonify({'error': 'Book not found'}), 404
 

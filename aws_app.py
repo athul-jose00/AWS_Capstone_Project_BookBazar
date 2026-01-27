@@ -17,7 +17,7 @@ app.secret_key = 'bookbazaar-secret-key-2026'
 
 # Hugging Face Configuration
 HF_API_KEY = os.environ.get(
-    'HF_TOKEN', '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')
+    'HF_TOKEN', 'testing-token-do-not-use-in-production')
 HF_MODEL = os.environ.get('HF_MODEL', 'Qwen/Qwen2.5-72B-Instruct')
 HF_CLIENT = InferenceClient(api_key=HF_API_KEY) if HF_API_KEY else None
 

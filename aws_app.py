@@ -24,6 +24,7 @@ HF_CLIENT = InferenceClient(api_key=HF_API_KEY) if HF_API_KEY else None
 # AWS Configuration
 REGION = 'us-east-1'
 
+# Initialize AWS services
 dynamodb = boto3.resource('dynamodb', region_name=REGION)
 sns = boto3.client('sns', region_name=REGION)
 

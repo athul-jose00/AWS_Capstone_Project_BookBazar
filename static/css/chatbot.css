@@ -319,6 +319,129 @@
   background: #138871;
 }
 
+/* Book Cards in Chat */
+.chatbot-books {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin: 10px 0;
+  animation: fadeIn 0.3s ease;
+}
+
+.chatbot-book-card {
+  display: flex;
+  gap: 12px;
+  background: white;
+  border-radius: 12px;
+  padding: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease;
+}
+
+.chatbot-book-card:hover {
+  box-shadow: 0 4px 12px rgba(22, 160, 133, 0.2);
+  transform: translateY(-2px);
+}
+
+.chatbot-book-card img {
+  width: 80px;
+  height: 120px;
+  object-fit: cover;
+  border-radius: 6px;
+  flex-shrink: 0;
+}
+
+.chatbot-book-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.chatbot-book-info h4 {
+  margin: 0;
+  font-size: 0.95rem;
+  color: #2c3e50;
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+.chatbot-book-author {
+  margin: 0;
+  font-size: 0.85rem;
+  color: #7f8c8d;
+}
+
+.chatbot-book-price {
+  margin: 0;
+  font-size: 1rem;
+  color: #16a085;
+  font-weight: 700;
+}
+
+.chatbot-view-btn,
+.chatbot-wishlist-btn {
+  padding: 6px 12px;
+  border-radius: 6px;
+  border: none;
+  cursor: pointer;
+  font-size: 0.85rem;
+  font-weight: 600;
+  transition: all 0.2s;
+  font-family: "Open Sans", sans-serif;
+  margin-top: 4px;
+}
+
+.chatbot-view-btn {
+  background: #16a085;
+  color: white;
+}
+
+.chatbot-view-btn:hover {
+  background: #138871;
+  transform: scale(1.02);
+}
+
+.chatbot-wishlist-btn {
+  background: #ecf0f1;
+  color: #e74c3c;
+  border: 1px solid #e74c3c;
+}
+
+.chatbot-wishlist-btn:hover {
+  background: #e74c3c;
+  color: white;
+}
+
+/* Notification Animation */
+@keyframes slideIn {
+  from {
+    transform: translateX(400px);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes slideOut {
+  from {
+    transform: translateX(0);
+    opacity: 1;
+  }
+  to {
+    transform: translateX(400px);
+    opacity: 0;
+  }
+}
+
+.chatbot-notification {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  font-weight: 600;
+  font-family: "Open Sans", sans-serif;
+}
+
 /* Mobile Responsiveness */
 @media (max-width: 480px) {
   .chatbot-window {
@@ -326,5 +449,20 @@
     height: calc(100vh - 100px);
     bottom: 20px;
     right: 20px;
+  }
+
+  .chatbot-book-card {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+  }
+
+  .chatbot-book-card img {
+    width: 100px;
+    height: 150px;
+  }
+
+  .chatbot-book-info {
+    align-items: center;
   }
 }

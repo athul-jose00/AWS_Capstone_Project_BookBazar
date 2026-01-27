@@ -5,6 +5,9 @@ import os
 import boto3
 import uuid
 from decimal import Decimal
+import json
+import requests
+from huggingface_hub import InferenceClient
 
 from boto3.dynamodb.conditions import Key, Attr
 from botocore.exceptions import ClientError
@@ -12,20 +15,25 @@ from botocore.exceptions import ClientError
 app = Flask(__name__)
 app.secret_key = 'bookbazaar-secret-key-2026'
 
+# Hugging Face Configuration
+HF_API_KEY = os.environ.get('HF_TOKEN', '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')
+HF_MODEL = os.environ.get('HF_MODEL', 'Qwen/Qwen2.5-72B-Instruct')
+HF_CLIENT = InferenceClient(api_key=HF_API_KEY) if HF_API_KEY else None
+
 # AWS Configuration
 REGION = 'us-east-1'
 
 dynamodb = boto3.resource('dynamodb', region_name=REGION)
 sns = boto3.client('sns', region_name=REGION)
 
-# DynamoDB Tables 
+# DynamoDB Tables
 users_table = dynamodb.Table('BookBazaar_Users')
 admin_users_table = dynamodb.Table('BookBazaar_AdminUsers')
 books_table = dynamodb.Table('BookBazaar_Books')
 orders_table = dynamodb.Table('BookBazaar_Orders')
 
 # SNS Topic ARN
-SNS_TOPIC_ARN = 'arn:aws:sns:us-east-1:604665149129:aws_capstone_topic'
+SNS_TOPIC_ARN = 'set_sns_topic_arn_here'
 
 
 def send_notification(subject, message):
@@ -241,9 +249,8 @@ def admin_user_details(email):
     target_user = response['Item']
 
     # Get user orders
-    response = orders_table.query(
-        IndexName='buyer_email-index',
-        KeyConditionExpression=Key('buyer_email').eq(email)
+    response = orders_table.scan(
+        FilterExpression=Attr('buyer_email').eq(email)
     )
     user_orders = response.get('Items', [])
 
@@ -360,9 +367,8 @@ def admin_seller_details(email):
     seller_books = response.get('Items', [])
 
     # Get seller orders
-    response = orders_table.query(
-        IndexName='seller_email-index',
-        KeyConditionExpression=Key('seller_email').eq(email)
+    response = orders_table.scan(
+        FilterExpression=Attr('seller_email').eq(email)
     )
     seller_orders = response.get('Items', [])
 
@@ -470,9 +476,8 @@ def seller_dashboard():
     seller_books = response.get('Items', [])
 
     # Get seller orders
-    response = orders_table.query(
-        IndexName='seller_email-index',
-        KeyConditionExpression=Key('seller_email').eq(email)
+    response = orders_table.scan(
+        FilterExpression=Attr('seller_email').eq(email)
     )
     seller_orders = sorted(response.get('Items', []),
                            key=lambda x: x.get('created_at', ''), reverse=True)
@@ -546,9 +551,8 @@ def seller_orders():
         return redirect(url_for('index'))
 
     email = user.get('email')
-    response = orders_table.query(
-        IndexName='seller_email-index',
-        KeyConditionExpression=Key('seller_email').eq(email)
+    response = orders_table.scan(
+        FilterExpression=Attr('seller_email').eq(email)
     )
     orders = response.get('Items', [])
 
@@ -837,14 +841,319 @@ def orders():
         return redirect(url_for('index'))
 
     email = user.get('email')
-    response = orders_table.query(
-        IndexName='buyer_email-index',
-        KeyConditionExpression=Key('buyer_email').eq(email)
+    response = orders_table.scan(
+        FilterExpression=Attr('buyer_email').eq(email)
     )
     orders_list = sorted(response.get('Items', []),
                          key=lambda x: x.get('created_at', ''), reverse=True)
 
     return render_template('orders.html', user=user, orders=orders_list)
+
+
+@app.route('/api/chatbot', methods=['POST'])
+def chatbot_api():
+    """Chatbot API endpoint with LLM integration and DynamoDB context"""
+    try:
+        data = request.get_json()
+        message = data.get('message', '').strip()
+
+        if not message:
+            return jsonify({'error': 'Message is required'}), 400
+
+        # Get available books from DynamoDB
+        response = books_table.scan()
+        all_books = response.get('Items', [])
+        available_books = [b for b in all_books if int(b.get('stock', 0)) > 0]
+
+        # Get user's orders if logged in
+        user = session.get('user')
+        user_orders = []
+        user_wishlist = session.get('wishlist', [])
+        if user and not user.get('is_admin'):
+            email = user.get('email')
+            response = orders_table.scan(
+                FilterExpression=Attr('buyer_email').eq(email))
+            user_orders = response.get('Items', [])
+
+        # Prepare detailed context for LLM
+        books_context = []
+        for book in available_books:
+            books_context.append({
+                'id': int(book.get('id')) if book.get('id') is not None else None,
+                'title': book.get('title'),
+                'author': book.get('author'),
+                'price': float(book.get('price', 0)),
+                'genre': book.get('genre', 'Unknown'),
+                'stock': int(book.get('stock', 0)),
+                'summary': book.get('summary', '')
+            })
+
+        context = {
+            'total_books': len(available_books),
+            'genres': list(set(b.get('genre', 'Unknown') for b in available_books)),
+            'all_books': books_context,
+            'user_orders_count': len(user_orders),
+            'user_wishlist_count': len(user_wishlist)
+        }
+
+        # Try to use Hugging Face LLM with InferenceClient
+        response_text = None
+        recommended_books = []
+        actions = []
+        used_ai = False
+
+        if HF_CLIENT:
+            try:
+                print(f"[DEBUG] Calling HuggingFace API via InferenceClient")
+
+                system_prompt = f"""You are BookBazaar Assistant, a helpful chatbot for an online bookstore.
+
+DATABASE CONTEXT:
+- Total books in stock: {context['total_books']}
+- Available genres: {', '.join(context['genres'])}
+- Books database: {json.dumps(books_context, indent=2)}
+
+USER CONTEXT:
+- Orders placed: {context['user_orders_count']}
+- Wishlist items: {context['user_wishlist_count']}
+
+CAPABILITIES:
+When recommending books, you MUST respond in this JSON format:
+{{
+  "message": "your helpful response text",
+  "recommended_books": [book_id1, book_id2],
+  "action": "none|add_to_wishlist"
+}}
+
+IMPORTANT RULES:
+1. When user asks about books or recommendations, include book IDs in "recommended_books" array
+2. When user says "add to wishlist" or similar, set "action": "add_to_wishlist" and include the book ID
+3. Always provide helpful, concise responses (2-3 sentences)
+4. Use actual book data from the database
+5. When recommending books, mention their titles and why they're good matches
+
+Example:
+User: "recommend a fiction book"
+Response: {{"message": "I recommend 'The Great Gatsby' by F. Scott Fitzgerald - a timeless classic about the Jazz Age and the American Dream!", "recommended_books": [1], "action": "none"}}
+
+User: "add it to wishlist"
+Response: {{"message": "I've added 'The Great Gatsby' to your wishlist!", "recommended_books": [1], "action": "add_to_wishlist"}}
+"""
+
+                completion = HF_CLIENT.chat.completions.create(
+                    model=HF_MODEL,
+                    messages=[
+                        {"role": "system", "content": system_prompt},
+                        {"role": "user", "content": message}
+                    ],
+                    max_tokens=500,
+                    temperature=0.7
+                )
+
+                ai_response = completion.choices[0].message.content.strip()
+                used_ai = True
+                print(f"[DEBUG] AI Response: {ai_response}")
+
+                try:
+                    parsed_response = json.loads(ai_response)
+                    response_text = parsed_response.get('message', ai_response)
+                    recommended_books = parsed_response.get('recommended_books', [])
+                    action = parsed_response.get('action', 'none')
+                    if action == 'add_to_wishlist' and recommended_books:
+                        actions.append({'type': 'add_to_wishlist', 'book_ids': recommended_books})
+                except json.JSONDecodeError:
+                    response_text = ai_response
+                    for book in available_books:
+                        if book.get('title') and book['title'].lower() in message.lower():
+                            if int(book.get('id')) not in recommended_books:
+                                recommended_books.append(int(book.get('id')))
+
+            except Exception as e:
+                print(f"[ERROR] HuggingFace API Error: {e}")
+                response_text = None
+
+        # Fallback to pattern matching if LLM fails
+        if not response_text:
+            print(f"[DEBUG] Using fallback pattern matching")
+            fallback_result = generate_smart_fallback(message.lower(), context, available_books, user_wishlist)
+            response_text = fallback_result['message']
+            recommended_books = fallback_result.get('recommended_books', [])
+            if fallback_result.get('action') == 'add_to_wishlist':
+                actions.append({'type': 'add_to_wishlist', 'book_ids': recommended_books})
+
+        # Get full book details for recommended books
+        books_to_display = []
+        for book_id in recommended_books[:3]:
+            # fetch book from DynamoDB
+            try:
+                bid = int(book_id)
+            except Exception:
+                continue
+            # find in all_books
+            book = next((b for b in all_books if int(b.get('id', 0)) == bid), None)
+            if book:
+                books_to_display.append({
+                    'id': int(book.get('id')),
+                    'title': book.get('title'),
+                    'author': book.get('author'),
+                    'price': float(book.get('price', 0)),
+                    'genre': book.get('genre', 'Unknown'),
+                    'cover_url': book.get('cover_url', ''),
+                    'summary': book.get('summary', '')
+                })
+
+        source = 'ai' if used_ai else 'system'
+
+        return jsonify({'response': response_text, 'books': books_to_display, 'actions': actions, 'source': source})
+
+    except Exception as e:
+        print(f"Chatbot API Error: {e}")
+        return jsonify({'error': 'Failed to process request'}), 500
+
+
+def generate_smart_fallback(message, context, available_books, user_wishlist=None):
+    """Generate a deterministic fallback response when LLM is unavailable.
+
+    Returns a dict: {message: str, recommended_books: [ids], action: optional}
+    """
+    user_wishlist = user_wishlist or []
+    msg = "I'm sorry, I couldn't reach the recommendation engine right now."
+    recommended = []
+    action = 'none'
+
+    # Simple keyword-based recommendations
+    if 'recommend' in message or 'suggest' in message or 'something to read' in message:
+        # recommend top 3 by stock
+        sorted_books = sorted(available_books, key=lambda b: int(b.get('stock', 0)), reverse=True)
+        for b in sorted_books[:3]:
+            try:
+                recommended.append(int(b.get('id')))
+            except Exception:
+                continue
+        if recommended:
+            titles = [b.get('title') for b in sorted_books[:3]]
+            msg = f"I recommend: {', '.join(titles)}. Want me to add any to your wishlist?"
+    elif 'add to wishlist' in message or 'add to my wishlist' in message or 'wishlist' in message:
+        # try to find a book title in message
+        for b in available_books:
+            if b.get('title') and b['title'].lower() in message:
+                try:
+                    recommended.append(int(b.get('id')))
+                except Exception:
+                    pass
+        if recommended:
+            action = 'add_to_wishlist'
+            msg = f"Added {len(recommended)} book(s) to your wishlist (local simulation)."
+        else:
+            msg = "Which book would you like me to add to your wishlist?"
+    else:
+        # fallback quick answer
+        msg = "I can help recommend books, find details, or add items to your wishlist. What would you like?"
+
+    return {'message': msg, 'recommended_books': recommended, 'action': action}
+
+
+@app.route('/api/chatbot/add-to-wishlist', methods=['POST'])
+def chatbot_add_to_wishlist():
+    try:
+        data = request.get_json()
+        book_ids = data.get('book_ids', [])
+        suppress_confirmation = data.get('suppressConfirmation', False)
+
+        if not isinstance(book_ids, list):
+            return jsonify({'error': 'book_ids must be a list'}), 400
+
+        wishlist = session.get('wishlist', [])
+        added = []
+        for bid in book_ids:
+            try:
+                bid = int(bid)
+            except Exception:
+                continue
+            if bid not in wishlist:
+                wishlist.append(bid)
+                added.append(bid)
+
+        session['wishlist'] = wishlist
+
+        response_msg = None
+        if not suppress_confirmation:
+            response_msg = f"Added {len(added)} book(s) to your wishlist."
+
+        return jsonify({'added': added, 'message': response_msg})
+    except Exception as e:
+        print(f"Add to wishlist error: {e}")
+        return jsonify({'error': 'Failed to add to wishlist'}), 500
+
+
+@app.route('/api/book/<int:book_id>', methods=['GET'])
+def get_book_details(book_id):
+    try:
+        response = books_table.scan()
+        all_books = response.get('Items', [])
+        book = next((b for b in all_books if int(b.get('id', 0)) == int(book_id)), None)
+        if not book:
+            return jsonify({'error': 'Book not found'}), 404
+
+        return jsonify({
+            'id': int(book.get('id')),
+            'title': book.get('title'),
+            'author': book.get('author'),
+            'price': float(book.get('price', 0)),
+            'genre': book.get('genre', 'Unknown'),
+            'summary': book.get('summary', ''),
+            'cover_url': book.get('cover_url', '')
+        })
+    except Exception as e:
+        print(f"Get book details error: {e}")
+        return jsonify({'error': 'Failed to retrieve book'}), 500
+
+
+def generate_fallback_response(message, context, available_books, user_orders):
+    """Generate response using simple pattern matching"""
+    # Greetings
+    if any(word in message for word in ['hello', 'hi', 'hey']):
+        return f"Hello! 👋 Welcome to BookBazaar! We have {context['available_books']} books available. How can I help you find your next great read?"
+
+    # Book availability
+    if 'how many' in message or 'available' in message:
+        return f"We currently have {context['available_books']} books in stock across {len(context['genres'])} genres: {', '.join(context['genres'])}. Would you like to browse by genre?"
+
+    # Genre queries
+    for genre in context['genres']:
+        if genre.lower() in message:
+            genre_books = [
+                b for b in available_books if b.get('genre') == genre]
+            if genre_books:
+                sample = genre_books[:2]
+                books_list = ', '.join(
+                    [f"{b['title']} by {b['author']} (${float(b.get('price', 0))})" for b in sample])
+                return f"We have {len(genre_books)} {genre} books! Check out: {books_list}. Browse more on our catalog!"
+
+    # Search
+    if 'search' in message or 'find' in message:
+        return f"You can browse our {context['available_books']} books by using the search bar or genre filter on the Browse Books page. What type of book are you looking for?"
+
+    # Orders
+    if 'order' in message:
+        if user_orders:
+            return f"You have {len(user_orders)} order(s). Check the 'Your Orders' page to view details and track your deliveries."
+        return "You haven't placed any orders yet. Browse our books and add items to your cart to get started!"
+
+    # Cart
+    if 'cart' in message:
+        return "Click the cart icon in the header to view your cart. You can add books by clicking 'Add to Cart' on any book card."
+
+    # Wishlist
+    if 'wishlist' in message or 'wish list' in message:
+        return "Save books for later by clicking the heart icon! View your wishlist from the sidebar to see all your saved books."
+
+    # Thanks
+    if 'thank' in message:
+        return "You're welcome! Happy reading! 📚 Let me know if you need anything else."
+
+    # Default
+    return f"I can help you with:\n• Browse our {context['available_books']} available books\n• Search by genre: {', '.join(context['genres'][:3])}\n• Track your orders\n• Manage cart and wishlist\n\nWhat would you like to know?"
 
 
 @app.context_processor

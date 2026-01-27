@@ -1,47 +1,97 @@
 {% extends 'base.html' %} {% block title %}Seller Dashboard - BookBazaar{%
 endblock %} {% block extra_css %}
 <link rel="stylesheet" href="/static/css/dashboard.css" />
+<link rel="stylesheet" href="/static/css/admin_dashboard.css" />
 {% endblock %} {% block content %}
 <div class="dashboard-layout">
   {% include '_seller_sidebar.html' %}
   <div class="dashboard-container seller-dashboard">
     <div class="profile-panel">
-      <div class="profile-header">
-        <h1>Your Seller Dashboard</h1>
-        <p class="muted">Manage your books and orders.</p>
+      <div class="admin-header">
+        <h1><i class="fas fa-store"></i> Seller Dashboard</h1>
+        <p class="admin-subtitle">
+          Manage your listings, track orders, and review performance.
+        </p>
       </div>
 
       {% if stats %}
       <div class="stats-grid">
-        <div class="stats-card">
-          <div class="stat-label"><i class="fas fa-book"></i>Total Books</div>
-          <div class="stat-value">{{ stats.total_books }}</div>
-        </div>
-        <div class="stats-card">
-          <div class="stat-label">
-            <i class="fas fa-box-open"></i>Orders Received
+        <div class="stat-card">
+          <div
+            class="stat-icon"
+            style="background: rgba(16, 185, 129, 0.08); color: #10b981"
+          >
+            <i class="fas fa-book"></i>
           </div>
-          <div class="stat-value">{{ stats.total_orders }}</div>
-        </div>
-        <div class="stats-card">
-          <div class="stat-label">
-            <i class="fas fa-dollar-sign"></i>Revenue
+          <div class="stat-content">
+            <h3>{{ stats.total_books }}</h3>
+            <p>Total Books</p>
           </div>
-          <div class="stat-value">${{ "%.2f"|format(stats.revenue) }}</div>
+        </div>
+
+        <div class="stat-card">
+          <div
+            class="stat-icon"
+            style="background: rgba(59, 130, 246, 0.08); color: #3b82f6"
+          >
+            <i class="fas fa-box-open"></i>
+          </div>
+          <div class="stat-content">
+            <h3>{{ stats.total_orders }}</h3>
+            <p>Orders Received</p>
+          </div>
+        </div>
+
+        <div class="stat-card">
+          <div
+            class="stat-icon"
+            style="background: rgba(245, 158, 11, 0.08); color: #f59e0b"
+          >
+            <i class="fas fa-dollar-sign"></i>
+          </div>
+          <div class="stat-content">
+            <h3>${{ "%.2f"|format(stats.revenue) }}</h3>
+            <p>Revenue</p>
+          </div>
         </div>
       </div>
       {% endif %}
-      <div class="seller-actions">
-        <a href="{{ url_for('seller_add_book') }}" class="btn btn-primary">
-          <i class="fas fa-plus"></i>Add New Book
-        </a>
-        <a href="{{ url_for('seller_orders') }}" class="btn btn-ghost">
-          <i class="fas fa-clipboard-list"></i>Manage Orders
-        </a>
+
+      <div class="admin-section" style="margin-top: 1.25rem">
+        <h2><i class="fas fa-bolt"></i> Quick Actions</h2>
+        <div class="actions-grid">
+          <div class="action-card">
+            <i class="fas fa-plus"></i>
+            <h3>Add New Book</h3>
+            <p>Create a new listing with title, price, and stock.</p>
+            <a href="{{ url_for('seller_add_book') }}" class="btn btn-secondary"
+              >Add Book</a
+            >
+          </div>
+
+          <div class="action-card">
+            <i class="fas fa-clipboard-list"></i>
+            <h3>Manage Orders</h3>
+            <p>View and update orders placed for your listings.</p>
+            <a href="{{ url_for('seller_orders') }}" class="btn btn-secondary"
+              >Manage Orders</a
+            >
+          </div>
+
+          <div class="action-card">
+            <i class="fas fa-box"></i>
+            <h3>Your Books</h3>
+            <p>Edit prices, stock, and descriptions of your inventory.</p>
+            <a href="{{ url_for('seller_books') }}" class="btn btn-secondary"
+              >View Listings</a
+            >
+          </div>
+        </div>
       </div>
-      <p class="muted helper-note">
-        <i class="fas fa-info-circle"></i>Use the "Your Books" menu to manage
-        listings and stock.
+
+      <p class="muted helper-note" style="margin-top: 1rem">
+        <i class="fas fa-info-circle"></i> Use the cards above for quick access
+        to common seller tasks.
       </p>
     </div>
   </div>

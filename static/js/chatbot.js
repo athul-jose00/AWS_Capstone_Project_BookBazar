@@ -2,6 +2,7 @@
 class Chatbot {
   constructor() {
     this.isOpen = false;
+    this.welcomeShown = false;
     this.init();
   }
 
@@ -82,11 +83,11 @@ class Chatbot {
   }
 
   displayWelcomeMessage() {
+    if (this.welcomeShown) return;
+    this.welcomeShown = true;
     setTimeout(() => {
-      this.addMessage(
-        "bot",
-        "Hello! 👋 Welcome to BookBazaar! How can I help you find your next great read?",
-      );
+      const welcome = `[SYSTEM] Hello! 👋 Welcome to BookBazaar!\nI can help you:\n• Recommend books by genre or popularity\n• Find books by title or author\n• Manage your cart and wishlist\n• Track orders\nAsk me anything about books or say \"recommend\" to get started.`;
+      this.addMessage("bot", welcome);
       this.showQuickReplies([
         "Show me bestsellers",
         "Find fiction books",
@@ -166,18 +167,139 @@ class Chatbot {
   processMessage(message) {
     this.showTyping();
 
-    // Simulate processing delay
-    setTimeout(
-      () => {
+    // Track whether we've already shown system fallback
+    this._usedFallback = false;
+    this._awaitingResponse = true;
+
+    // Start a 7s fallback timer: if AI doesn't respond in time, show system fallback
+    const fallbackTimer = setTimeout(() => {
+      if (this._awaitingResponse) {
         this.hideTyping();
         const response = this.generateResponse(message);
-        this.addMessage("bot", response);
+        this.addMessage("bot", `[SYSTEM] ${response}`);
+        this._usedFallback = true;
+        this._awaitingResponse = false;
+      }
+    }, 7000);
+
+    // Call backend API
+    fetch("/api/chatbot", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
       },
-      1000 + Math.random() * 1000,
-    );
+      body: JSON.stringify({ message: message }),
+    })
+      .then((response) => response.json())
+      .then((data) => {
+        // If we already fell back to system, ignore late AI response
+        if (this._usedFallback) {
+          clearTimeout(fallbackTimer);
+          return;
+        }
+        clearTimeout(fallbackTimer);
+        this._awaitingResponse = false;
+        this.hideTyping();
+
+        if (data.response) {
+          // Prefix with source tag if provided
+          const src = data.source === "ai" ? "[AI]" : "[SYSTEM]";
+          const displayText = `${src} ${data.response}`;
+          this.addMessage("bot", displayText);
+
+          // Handle actions (like add to wishlist)
+          if (data.actions && data.actions.length > 0) {
+            data.actions.forEach((action) => {
+              if (action.type === "add_to_wishlist") {
+                // If AI provided the action, suppress the duplicate server confirmation
+                const suppress = data.source === "ai";
+                this.addToWishlist(action.book_ids, suppress);
+              }
+            });
+          }
+
+          // Display recommended books if provided
+          if (data.books && data.books.length > 0) {
+            this.displayBooks(data.books);
+          }
+        } else {
+          this.addMessage(
+            "bot",
+            "Sorry, I'm having trouble right now. Please try again.",
+          );
+        }
+      })
+      .catch((error) => {
+        console.error("Chatbot API Error:", error);
+        clearTimeout(fallbackTimer);
+        this._awaitingResponse = false;
+        this.hideTyping();
+        // Fallback to local response generation
+        const response = this.generateResponse(message);
+        this.addMessage("bot", `[SYSTEM] ${response}`);
+      });
+  }
+
+  addToWishlist(bookIds, suppressConfirmation = false) {
+    // Call API to add books to wishlist
+    fetch("/api/chatbot/add-to-wishlist", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ book_ids: bookIds }),
+    })
+      .then((response) => response.json())
+      .then((data) => {
+        if (data.success) {
+          if (!suppressConfirmation) {
+            this.addMessage("bot", `[SYSTEM] ${data.message}`);
+          }
+          // Update wishlist badge if exists
+          const wishlistBadge = document.querySelector(".wishlist-count");
+          if (wishlistBadge) {
+            wishlistBadge.textContent = data.wishlist_count;
+          }
+        }
+      })
+      .catch((error) => {
+        console.error("Wishlist API Error:", error);
+        this.addMessage("bot", "Sorry, I couldn't add that to your wishlist.");
+      });
+  }
+
+  displayBooks(books) {
+    const messagesContainer = document.getElementById("chatbot-messages");
+    const booksDiv = document.createElement("div");
+    booksDiv.className = "chatbot-books";
+
+    books.forEach((book) => {
+      const bookCard = document.createElement("div");
+      bookCard.className = "chatbot-book-card";
+      bookCard.innerHTML = `
+        <img src="${book.cover_url || "https://placehold.co/80x120/e0e0e0/333333?text=Book"}" alt="${book.title}">
+        <div class="chatbot-book-info">
+          <h4>${book.title}</h4>
+          <p class="chatbot-book-author">${book.author}</p>
+          <p class="chatbot-book-price">$${book.price}</p>
+          <button class="chatbot-view-btn" onclick="openBookModal(${book.id})">
+            View Details
+          </button>
+          <button class="chatbot-wishlist-btn" onclick="chatbotAddToWishlist(${book.id}, '${book.title}')">
+            ♥ Add to Wishlist
+          </button>
+        </div>
+      `;
+      booksDiv.appendChild(bookCard);
+    });
+
+    const typingIndicator = document.getElementById("typing-indicator");
+    messagesContainer.insertBefore(booksDiv, typingIndicator);
+    messagesContainer.scrollTop = messagesContainer.scrollHeight;
   }
 
   generateResponse(message) {
+    // Fallback method for offline/error scenarios
     const lowerMessage = message.toLowerCase();
 
     // Book recommendations
@@ -266,6 +388,68 @@ class Chatbot {
     return "I can help you with:\n• Finding books by genre or author\n• Tracking your orders\n• Managing your cart and wishlist\n• Book recommendations\n\nWhat would you like to know more about?";
   }
 }
+
+// Global helper functions
+window.openBookModal = function (bookId) {
+  // Try to find and click the book card to open its modal
+  const bookCard = document.querySelector(`[data-book-id="${bookId}"]`);
+  if (bookCard) {
+    bookCard.click();
+  } else {
+    // If modal system exists, fetch book details and open modal
+    fetch(`/api/book/${bookId}`)
+      .then((response) => response.json())
+      .then((book) => {
+        if (typeof showBookDetails === "function") {
+          showBookDetails(book);
+        } else {
+          // Redirect to dashboard with book highlighted
+          window.location.href = `/dashboard?book=${bookId}`;
+        }
+      })
+      .catch((error) => {
+        console.error("Error loading book:", error);
+        alert("Could not load book details. Please try browsing the catalog.");
+      });
+  }
+};
+
+window.chatbotAddToWishlist = function (bookId, bookTitle) {
+  fetch("/api/chatbot/add-to-wishlist", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ book_ids: [bookId] }),
+  })
+    .then((response) => response.json())
+    .then((data) => {
+      if (data.success) {
+        // Show success notification
+        const notification = document.createElement("div");
+        notification.className = "chatbot-notification";
+        notification.textContent = `✓ ${bookTitle} added to wishlist!`;
+        notification.style.cssText =
+          "position: fixed; top: 20px; right: 20px; background: #4CAF50; color: white; padding: 15px 20px; border-radius: 5px; z-index: 10000; animation: slideIn 0.3s ease;";
+        document.body.appendChild(notification);
+
+        setTimeout(() => {
+          notification.style.animation = "slideOut 0.3s ease";
+          setTimeout(() => notification.remove(), 300);
+        }, 3000);
+
+        // Update wishlist badge
+        const wishlistBadge = document.querySelector(".wishlist-count");
+        if (wishlistBadge) {
+          wishlistBadge.textContent = data.wishlist_count;
+        }
+      }
+    })
+    .catch((error) => {
+      console.error("Wishlist API Error:", error);
+      alert("Sorry, couldn't add to wishlist. Please try again.");
+    });
+};
 
 // Initialize chatbot when page loads
 document.addEventListener("DOMContentLoaded", () => {

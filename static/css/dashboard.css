@@ -1,8 +1,8 @@
 /* Dashboard styles */
 .dashboard {
-  max-width: 900px;
-  margin: 40px auto;
-  padding: 30px;
+  max-width: 1200px;
+  margin: 24px auto;
+  padding: 24px 32px;
   background: var(--white);
   border-radius: 12px;
   box-shadow: var(--shadow-md);
@@ -96,6 +96,74 @@
 .seller-books .seller-book-card img {
   border-radius: 10px;
   box-shadow: var(--shadow-sm);
+}
+
+/* Layout and icon spacing for seller book cards */
+.seller-books-list {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.seller-books .seller-book-card {
+  display: flex;
+  gap: 18px;
+  align-items: center;
+  padding: 18px;
+}
+
+.seller-books .seller-book-card img {
+  width: 96px;
+  height: 132px;
+  object-fit: cover;
+}
+
+.seller-books .seller-book-info {
+  flex: 1;
+}
+
+.seller-books .seller-book-info .muted i {
+  margin-right: 8px;
+  color: #6b6b6b;
+  width: 18px;
+  text-align: center;
+}
+
+/* Color accents for seller cards */
+.seller-books .seller-book-card {
+  border-left: 6px solid rgba(0, 150, 136, 0.12); /* subtle teal accent */
+  background: linear-gradient(180deg, #ffffff 0%, #fbfdfe 100%);
+}
+
+.seller-books .book-title {
+  color: var(--accent-teal);
+  font-size: 1.05rem;
+}
+
+.seller-books .seller-book-info .muted i {
+  color: var(--muted-icon, #6b6b6b);
+}
+
+/* Make the price and author icons match the accent */
+.seller-books .seller-book-info .muted i.fas.fa-dollar-sign,
+.seller-books .seller-book-info .muted i.fas.fa-user {
+  color: rgba(0, 0, 0, 0.6);
+}
+
+/* Button accent inside cards */
+.seller-books .seller-book-actions .btn-outline {
+  border-color: rgba(0, 150, 136, 0.14);
+  color: var(--primary-dark);
+}
+.seller-books .seller-book-actions .btn-outline:hover {
+  background: rgba(0, 150, 136, 0.06);
+  border-color: rgba(0, 150, 136, 0.28);
+}
+
+/* Slight elevation on hover for cards */
+.seller-books .seller-book-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 6px 18px rgba(18, 52, 86, 0.06);
 }
 
 .seller-books .book-title {

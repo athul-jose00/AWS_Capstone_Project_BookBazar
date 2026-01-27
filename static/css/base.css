@@ -138,6 +138,37 @@ ul {
   font-size: 0.9rem;
 }
 
+/* Unified button secondary style and consistent hover effect */
+.btn-secondary {
+  background: var(--bg-light);
+  color: var(--primary-dark);
+  border: 2px solid #e6e6e6;
+  padding: 0.7rem 1.5rem;
+  border-radius: 10px;
+  font-weight: 700;
+  transition: var(--transition);
+  box-shadow: none;
+}
+
+.btn-secondary:hover {
+  background: var(--accent-teal);
+  color: var(--white);
+  border-color: var(--accent-teal);
+}
+
+/* Global hover/interaction for primary/secondary/outline buttons */
+.btn {
+  will-change: transform, box-shadow;
+}
+.btn:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-md);
+}
+.btn:focus {
+  outline: 3px solid rgba(24, 169, 153, 0.14);
+  outline-offset: 2px;
+}
+
 /* Backwards-compatibility for legacy auth classes */
 .btn.primary {
   background: var(--accent-teal);
@@ -245,7 +276,7 @@ ul {
 }
 
 .customer-sidebar {
-  width: 240px;
+  width: 220px;
   background: #ffffff;
   border-radius: 12px;
   box-shadow: var(--shadow-sm);
@@ -887,7 +918,7 @@ ul {
   flex: 1;
 }
 .profile-panel {
-  max-width: 760px;
+  max-width: 1180px;
   margin: 0 auto;
 }
 .profile-header h1 {

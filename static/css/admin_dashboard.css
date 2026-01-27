@@ -136,6 +136,20 @@
   border-color: var(--accent-teal);
 }
 
+/* Ensure action card buttons have consistent sizing and shape */
+.action-card .btn {
+  padding: 0.9rem 1.6rem;
+  border-radius: 12px;
+  font-size: 1rem;
+  box-shadow: none;
+}
+
+.action-card .btn-primary {
+  /* If any action uses primary, make it visually consistent */
+  box-shadow: none;
+  border-radius: 12px;
+}
+
 .activity-list {
   display: flex;
   flex-direction: column;

@@ -926,7 +926,7 @@ def chatbot_api():
         books_context = []
         for book in available_books:
             books_context.append({
-                'id': int(book.get('id')) if book.get('id') is not None else None,
+                'id': str(book.get('id')) if book.get('id') is not None else None,
                 'title': book.get('title'),
                 'author': book.get('author'),
                 'price': float(book.get('price', 0)),
@@ -1004,8 +1004,9 @@ Response: {{"message": "I've added 'The Great Gatsby' to your wishlist!", "recom
                 try:
                     parsed_response = json.loads(ai_response)
                     response_text = parsed_response.get('message', ai_response)
-                    recommended_books = parsed_response.get(
-                        'recommended_books', [])
+                    # normalize recommended book ids to strings
+                    recommended_books = [
+                        str(b) for b in parsed_response.get('recommended_books', [])]
                     action = parsed_response.get('action', 'none')
                     if action == 'add_to_wishlist' and recommended_books:
                         actions.append(
@@ -1014,8 +1015,11 @@ Response: {{"message": "I've added 'The Great Gatsby' to your wishlist!", "recom
                     response_text = ai_response
                     for book in available_books:
                         if book.get('title') and book['title'].lower() in message.lower():
-                            if int(book.get('id')) not in recommended_books:
-                                recommended_books.append(int(book.get('id')))
+                            bid = book.get('id')
+                            if bid is not None:
+                                bid = str(bid)
+                                if bid not in recommended_books:
+                                    recommended_books.append(bid)
 
             except Exception as e:
                 print(f"[ERROR] HuggingFace API Error: {e}")
@@ -1035,17 +1039,14 @@ Response: {{"message": "I've added 'The Great Gatsby' to your wishlist!", "recom
         # Get full book details for recommended books
         books_to_display = []
         for book_id in recommended_books[:3]:
-            # fetch book from DynamoDB
-            try:
-                bid = int(book_id)
-            except Exception:
-                continue
+            # treat ids as strings
+            bid = str(book_id)
             # find in all_books
-            book = next((b for b in all_books if int(
-                b.get('id', 0)) == bid), None)
+            book = next((b for b in all_books if str(
+                b.get('id', '')) == bid), None)
             if book:
                 books_to_display.append({
-                    'id': int(book.get('id')),
+                    'id': str(book.get('id')),
                     'title': book.get('title'),
                     'author': book.get('author'),
                     'price': float(book.get('price', 0)),
@@ -1080,7 +1081,9 @@ def generate_smart_fallback(message, context, available_books, user_wishlist=Non
             b.get('stock', 0)), reverse=True)
         for b in sorted_books[:3]:
             try:
-                recommended.append(int(b.get('id')))
+                bid = b.get('id')
+                if bid is not None:
+                    recommended.append(str(bid))
             except Exception:
                 continue
         if recommended:
@@ -1091,7 +1094,9 @@ def generate_smart_fallback(message, context, available_books, user_wishlist=Non
         for b in available_books:
             if b.get('title') and b['title'].lower() in message:
                 try:
-                    recommended.append(int(b.get('id')))
+                    bid = b.get('id')
+                    if bid is not None:
+                        recommended.append(str(bid))
                 except Exception:
                     pass
         if recommended:
@@ -1119,10 +1124,8 @@ def chatbot_add_to_wishlist():
         wishlist = session.get('wishlist', [])
         added = []
         for bid in book_ids:
-            try:
-                bid = int(bid)
-            except Exception:
-                continue
+            # store ids as strings
+            bid = str(bid)
             if bid not in wishlist:
                 wishlist.append(bid)
                 added.append(bid)
@@ -1139,18 +1142,19 @@ def chatbot_add_to_wishlist():
         return jsonify({'error': 'Failed to add to wishlist'}), 500
 
 
-@app.route('/api/book/<int:book_id>', methods=['GET'])
+@app.route('/api/book/<book_id>', methods=['GET'])
 def get_book_details(book_id):
     try:
         response = books_table.scan()
         all_books = response.get('Items', [])
-        book = next((b for b in all_books if int(
-            b.get('id', 0)) == int(book_id)), None)
+        # compare ids as strings
+        book = next((b for b in all_books if str(
+            b.get('id', '')) == str(book_id)), None)
         if not book:
             return jsonify({'error': 'Book not found'}), 404
 
         return jsonify({
-            'id': int(book.get('id')),
+            'id': str(book.get('id')),
             'title': book.get('title'),
             'author': book.get('author'),
             'price': float(book.get('price', 0)),

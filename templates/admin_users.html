@@ -46,8 +46,8 @@ extra_css %}
                   value="customer"
                   {%
                   if
-                  role_filter
-                  =="customer"
+                  role_filter=""
+                  ="customer"
                   %}selected{%
                   endif
                   %}
@@ -58,7 +58,8 @@ extra_css %}
                   value="seller"
                   {%
                   if
-                  role_filter=="seller"
+                  role_filter=""
+                  ="seller"
                   %}selected{%
                   endif
                   %}
@@ -93,7 +94,9 @@ extra_css %}
                 <td>{{ user_item.name }}</td>
                 <td>
                   <span class="badge badge-{{ user_item.role }}">
-                    {% if user_item.role == 'seller' %}
+                    {% if user_item.role == 'admin' %}
+                    <i class="fas fa-user-shield"></i> Administrator {% elif
+                    user_item.role == 'seller' %}
                     <i class="fas fa-store"></i> Seller {% else %}
                     <i class="fas fa-user"></i> Customer {% endif %}
                   </span>

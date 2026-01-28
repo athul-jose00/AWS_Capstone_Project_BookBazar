@@ -47,7 +47,8 @@ extra_css %}
                   value="{{ genre }}"
                   {%
                   if
-                  genre_filter=="genre"
+                  genre_filter=""
+                  ="genre"
                   %}selected{%
                   endif
                   %}
@@ -82,7 +83,7 @@ extra_css %}
               <tr>
                 <td>{{ book.title }}</td>
                 <td>{{ book.author }}</td>
-                <td>{{ book.seller.name }}</td>
+                <td>{{ book.seller_name or book.seller_email or '—' }}</td>
                 <td>{{ book.genre }}</td>
                 <td>${{ "%.2f"|format(book.price) }}</td>
                 <td>{{ book.stock }}</td>

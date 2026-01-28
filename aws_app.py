@@ -274,13 +274,24 @@ def admin_books():
         flash('Access denied.', 'error')
         return redirect(url_for('index'))
 
-    books = books_table.scan().get('Items', [])
-    genre_filter = request.args.get('genre', 'all')
+    all_books = books_table.scan().get('Items', [])
+    # derive genre list for filter dropdown
+    genres = sorted(list({b.get('genre', 'Unknown') for b in all_books}))
 
+    genre_filter = request.args.get('genre', 'all')
+    search = request.args.get('search', '')
+
+    # start with all books then apply filters
+    books = all_books
     if genre_filter != 'all':
         books = [b for b in books if b.get('genre') == genre_filter]
 
-    return render_template('admin_books.html', user=user, books=books, genre_filter=genre_filter)
+    if search:
+        q = search.lower()
+        books = [b for b in books if q in (
+            b.get('title', '').lower() + ' ' + b.get('author', '').lower())]
+
+    return render_template('admin_books.html', user=user, books=books, genre_filter=genre_filter, genres=genres, search=search)
 
 
 @app.route('/admin/book/<book_id>', methods=['GET', 'POST'])
@@ -731,13 +742,27 @@ def cart():
 
     # Build cart items from session, using indexed books
     for book_id, qty in cart_data.items():
+        # try indexed lookup first
         book = books_index.get(str(book_id))
+        # fallback to direct get_item if scan didn't include it (safer for inconsistent id types)
+        if not book:
+            try:
+                resp = books_table.get_item(Key={'id': book_id})
+                if 'Item' in resp:
+                    book = resp['Item']
+            except Exception:
+                book = None
+
         if book:
             try:
                 qty_int = int(qty)
             except Exception:
                 qty_int = 0
-            subtotal = qty_int * float(book.get('price', 0))
+            try:
+                price = float(book.get('price', 0))
+            except Exception:
+                price = 0.0
+            subtotal = qty_int * price
             total += subtotal
             cart_items.append({
                 'book': book,
@@ -745,11 +770,11 @@ def cart():
                 'subtotal': subtotal
             })
         else:
-            # keep missing ids in session for now; show user-friendly message
+            # show user-friendly message for missing items
             flash(
                 f"Item with id {book_id} is no longer available and will be removed at checkout.", 'info')
 
-    return render_template('cart.html', user=user, cart_items=cart_items, total=round(total, 2))
+    return render_template('cart.html', user=user, items=cart_items, total=round(total, 2))
 
 
 @app.route('/cart/add/<book_id>', methods=['POST'])

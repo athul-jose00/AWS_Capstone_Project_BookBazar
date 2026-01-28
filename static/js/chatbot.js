@@ -282,14 +282,35 @@ class Chatbot {
           <h4>${book.title}</h4>
           <p class="chatbot-book-author">${book.author}</p>
           <p class="chatbot-book-price">$${book.price}</p>
-          <button class="chatbot-view-btn" onclick="openBookModal(${book.id})">
-            View Details
-          </button>
-          <button class="chatbot-wishlist-btn" onclick="chatbotAddToWishlist(${book.id}, '${book.title}')">
-            ♥ Add to Wishlist
-          </button>
+          <div class="chatbot-book-controls">
+            <button class="chatbot-view-btn" data-book-id="${String(book.id)}">View Details</button>
+            <button class="chatbot-wishlist-btn" data-book-id="${String(book.id)}" data-book-title="${(book.title || "").replace(/"/g, "&quot;")}">♥ Add to Wishlist</button>
+          </div>
         </div>
       `;
+      // attach handlers (use closures to capture book values safely)
+      const viewBtn = bookCard.querySelector(".chatbot-view-btn");
+      if (viewBtn) {
+        viewBtn.addEventListener("click", (e) => {
+          e.preventDefault();
+          try {
+            openBookModal(String(book.id));
+          } catch (err) {
+            console.error("openBookModal error", err);
+          }
+        });
+      }
+      const wlBtn = bookCard.querySelector(".chatbot-wishlist-btn");
+      if (wlBtn) {
+        wlBtn.addEventListener("click", (e) => {
+          e.preventDefault();
+          try {
+            chatbotAddToWishlist(String(book.id), book.title || "");
+          } catch (err) {
+            console.error("chatbotAddToWishlist error", err);
+          }
+        });
+      }
       booksDiv.appendChild(bookCard);
     });
 

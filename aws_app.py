@@ -17,7 +17,7 @@ app.secret_key = 'bookbazaar-secret-key-2026'
 
 # Hugging Face Configuration
 HF_API_KEY = os.environ.get(
-    'HF_TOKEN', 'testing-token-do-not-use-in-production')
+    'HF_TOKEN', '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')
 HF_MODEL = os.environ.get('HF_MODEL', 'Qwen/Qwen2.5-72B-Instruct')
 HF_CLIENT = InferenceClient(api_key=HF_API_KEY) if HF_API_KEY else None
 
@@ -74,15 +74,18 @@ def signup():
 
     # Check if user exists
     if role == 'admin':
-        response = admin_users_table.get_item(Key={'email': email})
+        # store admins in the same users table but mark role='admin' to avoid redundant admin table
+        response = users_table.get_item(Key={'email': email})
         if 'Item' in response:
             flash('Admin already exists!', 'error')
             return redirect(url_for('auth_page'))
 
-        admin_users_table.put_item(Item={
+        users_table.put_item(Item={
             'email': email,
             'name': name or '',
-            'password': generate_password_hash(password)
+            'password': generate_password_hash(password),
+            'role': 'admin',
+            'created_at': datetime.utcnow().isoformat()
         })
         send_notification("New Admin Signup",
                           f"Admin {name} ({email}) has registered.")
@@ -111,34 +114,26 @@ def login():
     email = request.form.get('email')
     password = request.form.get('password')
 
-    # Check admin first
-    response = admin_users_table.get_item(Key={'email': email})
-    if 'Item' in response:
-        admin = response['Item']
-        if check_password_hash(admin.get('password', ''), password):
-            session['user'] = {
-                'email': email,
-                'name': admin.get('name', ''),
-                'is_admin': True
-            }
-            send_notification("Admin Login", f"Admin {email} logged in.")
-            flash('Welcome Admin!', 'success')
-            return redirect(url_for('admin_dashboard'))
-
-    # Check regular user
+    # Check user (admins are stored in users_table with role='admin')
     response = users_table.get_item(Key={'email': email})
     if 'Item' in response:
         user = response['Item']
         if check_password_hash(user.get('password', ''), password):
             role = user.get('role', 'customer')
+            is_admin = True if role == 'admin' else False
             session['user'] = {
                 'email': email,
                 'name': user.get('name', ''),
-                'is_admin': False,
+                'is_admin': is_admin,
                 'role': role
             }
             session['cart'] = {}
             session['wishlist'] = []
+
+            if is_admin:
+                send_notification("Admin Login", f"Admin {email} logged in.")
+                flash('Welcome Admin!', 'success')
+                return redirect(url_for('admin_dashboard'))
 
             send_notification("User Login", f"User {email} logged in.")
             flash('Logged in successfully.', 'success')
@@ -409,7 +404,57 @@ def admin_order_details(order_id):
         return redirect(url_for('admin_orders'))
 
     order = response['Item']
-    return render_template('admin_order_details.html', user=user, order=order)
+    # Normalize DynamoDB Decimal values and adapt item keys for the template
+    try:
+        # customer info
+        customer_email = order.get('buyer_email') or order.get(
+            'buyer', {}).get('email')
+        customer_name = order.get('buyer_name') or order.get(
+            'buyer', {}).get('name') or ''
+
+        # total
+        if isinstance(order.get('total'), Decimal):
+            order['total'] = float(order['total'])
+
+        # items: ensure each item has 'id', numeric types are native
+        items = order.get('items', []) or []
+        new_items = []
+        for it in items:
+            # copy to avoid mutating unexpected types
+            try:
+                it_id = it.get('book_id') or it.get('id')
+            except Exception:
+                it_id = None
+            # coerce numeric fields
+            try:
+                price = float(it.get('price')) if it.get(
+                    'price') is not None else 0.0
+            except Exception:
+                price = 0.0
+            try:
+                subtotal = float(it.get('subtotal')) if it.get(
+                    'subtotal') is not None else 0.0
+            except Exception:
+                subtotal = 0.0
+            try:
+                qty = int(it.get('qty') or 0)
+            except Exception:
+                qty = 0
+
+            new_item = dict(it)
+            new_item['id'] = it_id
+            new_item['price'] = price
+            new_item['subtotal'] = subtotal
+            new_item['qty'] = qty
+            new_items.append(new_item)
+
+        order['items'] = new_items
+    except Exception as e:
+        print(f"admin_order_details normalization error: {e}")
+        customer_email = order.get('buyer_email')
+        customer_name = order.get('buyer_name', '')
+
+    return render_template('admin_order_details.html', user=user, order=order, customer_email=customer_email, customer_name=customer_name)
 
 
 @app.route('/admin/analytics')
@@ -1120,28 +1165,32 @@ def get_book_details(book_id):
 
 def generate_fallback_response(message, context, available_books, user_orders):
     """Generate response using simple pattern matching"""
+    # Use the passed `available_books` and safe context lookups
+    genres = context.get('genres', [])
+    total = len(available_books)
+
     # Greetings
     if any(word in message for word in ['hello', 'hi', 'hey']):
-        return f"Hello! 👋 Welcome to BookBazaar! We have {context['available_books']} books available. How can I help you find your next great read?"
+        return f"Hello! 👋 Welcome to BookBazaar! We have {total} books available. How can I help you find your next great read?"
 
     # Book availability
     if 'how many' in message or 'available' in message:
-        return f"We currently have {context['available_books']} books in stock across {len(context['genres'])} genres: {', '.join(context['genres'])}. Would you like to browse by genre?"
+        return f"We currently have {total} books in stock across {len(genres)} genres: {', '.join(genres)}. Would you like to browse by genre?"
 
     # Genre queries
-    for genre in context['genres']:
+    for genre in genres:
         if genre.lower() in message:
             genre_books = [
                 b for b in available_books if b.get('genre') == genre]
             if genre_books:
                 sample = genre_books[:2]
-                books_list = ', '.join(
-                    [f"{b['title']} by {b['author']} (${float(b.get('price', 0))})" for b in sample])
+                books_list = ', '.join([
+                    f"{b.get('title')} by {b.get('author')} (${float(b.get('price', 0))})" for b in sample])
                 return f"We have {len(genre_books)} {genre} books! Check out: {books_list}. Browse more on our catalog!"
 
     # Search
     if 'search' in message or 'find' in message:
-        return f"You can browse our {context['available_books']} books by using the search bar or genre filter on the Browse Books page. What type of book are you looking for?"
+        return f"You can browse our {total} books by using the search bar or genre filter on the Browse Books page. What type of book are you looking for?"
 
     # Orders
     if 'order' in message:
@@ -1162,7 +1211,7 @@ def generate_fallback_response(message, context, available_books, user_orders):
         return "You're welcome! Happy reading! 📚 Let me know if you need anything else."
 
     # Default
-    return f"I can help you with:\n• Browse our {context['available_books']} available books\n• Search by genre: {', '.join(context['genres'][:3])}\n• Track your orders\n• Manage cart and wishlist\n\nWhat would you like to know?"
+    return f"I can help you with:\n• Browse our {total} available books\n• Search by genre: {', '.join(genres[:3])}\n• Track your orders\n• Manage cart and wishlist\n\nWhat would you like to know?"
 
 
 @app.context_processor

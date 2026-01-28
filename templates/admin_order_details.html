@@ -80,7 +80,7 @@ extra_css %}
 
         <div class="detail-card">
           <h2><i class="fas fa-box"></i> Order Items</h2>
-          {% if order.items %}
+          {% if order['items'] %}
           <div class="table-container">
             <table class="admin-table">
               <thead>
@@ -93,7 +93,7 @@ extra_css %}
                 </tr>
               </thead>
               <tbody>
-                {% for item in order.items %}
+                {% for item in order['items'] %}
                 <tr>
                   <td>{{ item.id }}</td>
                   <td>{{ item.title }}</td>

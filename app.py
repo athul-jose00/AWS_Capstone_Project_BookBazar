@@ -11,16 +11,16 @@ app.secret_key = 'dev-secret-change-me'
 
 # Hugging Face Configuration
 HF_API_KEY = os.environ.get(
-    'HF_TOKEN', 'testing-token-do-not-use-in-production')
+    'HF_TOKEN', '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')
 HF_CLIENT = InferenceClient(api_key=HF_API_KEY) if HF_API_KEY else None
 
 
 USERS = {}
-ADMIN_USERS = {
-    'admin@bookbazaar.com': {
-        'name': 'Administrator',
-        'password': generate_password_hash('admin@bookbazaar.com')
-    }
+# Seed admin into USERS (store role in USERS to avoid redundant ADMIN_USERS)
+USERS['admin@bookbazaar.com'] = {
+    'name': 'Administrator',
+    'password': generate_password_hash('admin@bookbazaar.com'),
+    'role': 'admin'
 }
 
 MOCK_BOOKS = [
@@ -241,26 +241,15 @@ def signup():
 def login():
     email = request.form.get('email')
     password = request.form.get('password')
-
-    # Check if admin
-    admin = ADMIN_USERS.get(email)
-    if admin and check_password_hash(admin.get('password', ''), password):
-        session['user'] = {
-            'email': email,
-            'name': admin.get('name', ''),
-            'is_admin': True
-        }
-        flash('Welcome Admin!', 'success')
-        return redirect(url_for('admin_dashboard'))
-
-    # Check if regular user (customer or seller)
+    # Single lookup in USERS; admin users are stored with role='admin'
     user = USERS.get(email)
     if user and check_password_hash(user.get('password', ''), password):
         role = user.get('role', 'customer')
+        is_admin = True if role == 'admin' else False
         session['user'] = {
             'email': email,
             'name': user.get('name', ''),
-            'is_admin': False,
+            'is_admin': is_admin,
             'role': role
         }
         # restore user's persisted cart into session if present
@@ -279,6 +268,11 @@ def login():
         user_obj = USERS.get(email, {})
         user_obj['wishlist'] = merged
         USERS[email] = user_obj
+
+        if is_admin:
+            flash('Welcome Admin!', 'success')
+            return redirect(url_for('admin_dashboard'))
+
         flash('Logged in successfully.', 'success')
         # Redirect sellers to seller dashboard
         if role == 'seller':
@@ -325,7 +319,7 @@ def admin_dashboard():
 
     stats = {
         'total_users': len(USERS),
-        'total_admins': len(ADMIN_USERS),
+        'total_admins': sum(1 for u in USERS.values() if u.get('role') == 'admin'),
         'total_books': total_books,
         'total_orders': total_orders
     }

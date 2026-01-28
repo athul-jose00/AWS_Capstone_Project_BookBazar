@@ -713,7 +713,8 @@ def cart():
         for mid in missing_ids:
             cart_data.pop(mid, None)
         session['cart'] = cart_data
-        flash(f"Removed {len(missing_ids)} unavailable item(s) from your cart.", 'info')
+        flash(
+            f"Removed {len(missing_ids)} unavailable item(s) from your cart.", 'info')
 
     return render_template('cart.html', user=user, cart_items=cart_items, total=round(total, 2))
 

@@ -17,7 +17,7 @@ app.secret_key = 'bookbazaar-secret-key-2026'
 
 # Hugging Face Configuration
 HF_API_KEY = os.environ.get(
-    'HF_TOKEN', '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')
+    'HF_TOKEN', 'test')
 HF_MODEL = os.environ.get('HF_MODEL', 'Qwen/Qwen2.5-72B-Instruct')
 HF_CLIENT = InferenceClient(api_key=HF_API_KEY) if HF_API_KEY else None
 
@@ -690,31 +690,33 @@ def cart():
     cart_data = session.get('cart', {})
     cart_items = []
     total = 0.0
-    missing_ids = []
 
+    # Fetch all books once and index by id to avoid per-item get_item mismatches
+    try:
+        response = books_table.scan()
+        all_books = response.get('Items', [])
+        books_index = {str(b.get('id')): b for b in all_books}
+    except Exception:
+        books_index = {}
+
+    # Build cart items from session, using indexed books
     for book_id, qty in cart_data.items():
-        response = books_table.get_item(Key={'id': book_id})
-        if 'Item' in response:
-            book = response['Item']
-            qty = int(qty)
-            subtotal = qty * float(book.get('price', 0))
+        book = books_index.get(str(book_id))
+        if book:
+            try:
+                qty_int = int(qty)
+            except Exception:
+                qty_int = 0
+            subtotal = qty_int * float(book.get('price', 0))
             total += subtotal
             cart_items.append({
                 'book': book,
-                'qty': qty,
+                'qty': qty_int,
                 'subtotal': subtotal
             })
         else:
-            # Book id present in session cart but missing from DB (e.g., item removed)
-            missing_ids.append(book_id)
-
-    # Clean up any missing book ids from the session so header/cart_count stays accurate
-    if missing_ids:
-        for mid in missing_ids:
-            cart_data.pop(mid, None)
-        session['cart'] = cart_data
-        flash(
-            f"Removed {len(missing_ids)} unavailable item(s) from your cart.", 'info')
+            # keep missing ids in session for now; show user-friendly message
+            flash(f"Item with id {book_id} is no longer available and will be removed at checkout.", 'info')
 
     return render_template('cart.html', user=user, cart_items=cart_items, total=round(total, 2))
 

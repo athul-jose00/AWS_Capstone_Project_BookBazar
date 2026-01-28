@@ -189,6 +189,29 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   });
 
+    // Intercept general Add-to-cart forms (book cards, catalog) to use AJAX and avoid navigating to JSON
+    document.querySelectorAll('form[action^="/cart/add/"]').forEach((form) => {
+      form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const action = form.getAttribute('action');
+        try {
+          const res = await fetch(action, {
+            method: 'POST',
+            credentials: 'same-origin',
+          });
+          if (!res.ok) throw new Error('network');
+          const data = await res.json();
+          // bump header cart badge
+          const cartBadge = document.querySelector('.cart-btn .cart-badge, .nav-cart .cart-badge');
+          if (cartBadge) cartBadge.textContent = data.count !== undefined ? data.count : (parseInt(cartBadge.textContent||'0') + 1);
+          showFlash('Added to cart', 'success');
+        } catch (err) {
+          console.error('Add to cart failed', err);
+          showFlash('Could not add to cart', 'error');
+        }
+      });
+    });
+
   // Toggle Add Address form on profile page with smooth reveal
   const addAddrBtn = document.getElementById("show-add-address");
   const addAddrWrap = document.getElementById("add-address-form");

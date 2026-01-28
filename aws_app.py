@@ -716,7 +716,8 @@ def cart():
             })
         else:
             # keep missing ids in session for now; show user-friendly message
-            flash(f"Item with id {book_id} is no longer available and will be removed at checkout.", 'info')
+            flash(
+                f"Item with id {book_id} is no longer available and will be removed at checkout.", 'info')
 
     return render_template('cart.html', user=user, cart_items=cart_items, total=round(total, 2))
 

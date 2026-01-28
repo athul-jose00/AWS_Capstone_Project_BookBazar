@@ -17,7 +17,7 @@ app.secret_key = 'bookbazaar-secret-key-2026'
 
 # Hugging Face Configuration
 HF_API_KEY = os.environ.get(
-    'HF_TOKEN', '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')
+    'HF_TOKEN', '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')
 HF_MODEL = os.environ.get('HF_MODEL', 'Qwen/Qwen2.5-72B-Instruct')
 HF_CLIENT = InferenceClient(api_key=HF_API_KEY) if HF_API_KEY else None
 
@@ -30,12 +30,11 @@ sns = boto3.client('sns', region_name=REGION)
 
 # DynamoDB Tables
 users_table = dynamodb.Table('BookBazaar_Users')
-admin_users_table = dynamodb.Table('BookBazaar_AdminUsers')
 books_table = dynamodb.Table('BookBazaar_Books')
 orders_table = dynamodb.Table('BookBazaar_Orders')
 
 # SNS Topic ARN
-SNS_TOPIC_ARN = 'set_sns_topic_arn_here'
+SNS_TOPIC_ARN = 'arn:aws:sns:us-east-1:537124956479:bookbazar_topic'
 
 
 def send_notification(subject, message):

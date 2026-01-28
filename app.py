@@ -11,7 +11,7 @@ app.secret_key = 'dev-secret-change-me'
 
 # Hugging Face Configuration
 HF_API_KEY = os.environ.get(
-    'HF_TOKEN', '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')
+    'HF_TOKEN', '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')
 HF_CLIENT = InferenceClient(api_key=HF_API_KEY) if HF_API_KEY else None
 
 

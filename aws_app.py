@@ -682,7 +682,8 @@ def seller_delete_book(book_id):
 
     try:
         books_table.delete_item(Key={'id': book_id})
-        send_notification('Book Deleted', f"Seller {user.get('email')} deleted book: {book.get('title')}")
+        send_notification(
+            'Book Deleted', f"Seller {user.get('email')} deleted book: {book.get('title')}")
         flash('Book deleted successfully.', 'success')
     except Exception as e:
         print(f"Error deleting book: {e}")

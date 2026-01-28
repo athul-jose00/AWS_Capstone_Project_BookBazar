@@ -750,6 +750,48 @@ def seller_orders():
 
     return render_template('seller_orders.html', user=user, orders=orders)
 
+
+@app.route('/seller/order/<order_id>/status', methods=['POST'])
+def seller_update_order_status(order_id):
+    user = session.get('user')
+    if not user or user.get('role') != 'seller':
+        flash('Access denied. Seller account required.', 'error')
+        return redirect(url_for('index'))
+
+    # Fetch the order item from DynamoDB
+    try:
+        resp = orders_table.get_item(Key={'id': order_id})
+    except Exception as e:
+        print(f"Error fetching order {order_id}: {e}")
+        flash('Failed to update order.', 'error')
+        return redirect(url_for('seller_orders'))
+
+    if 'Item' not in resp:
+        flash('Order not found.', 'error')
+        return redirect(url_for('seller_orders'))
+
+    order = resp['Item']
+    seller_email = order.get('seller_email')
+    if seller_email != user.get('email'):
+        flash('You are not authorized to update this order.', 'error')
+        return redirect(url_for('seller_orders'))
+
+    new_status = request.form.get('status') or order.get('status')
+
+    try:
+        orders_table.update_item(
+            Key={'id': order_id},
+            UpdateExpression='SET #s = :s',
+            ExpressionAttributeNames={'#s': 'status'},
+            ExpressionAttributeValues={':s': new_status}
+        )
+        flash('Order status updated.', 'success')
+    except Exception as e:
+        print(f"Error updating order status: {e}")
+        flash('Failed to update order status.', 'error')
+
+    return redirect(url_for('seller_orders'))
+
 # ==================== CUSTOMER ROUTES ====================
 
 
@@ -1025,7 +1067,8 @@ def payment():
         for seller_email, seller_items in sellers_involved.items():
             # seller_items may contain Python floats which DynamoDB rejects;
             # convert numeric fields to Decimal before persisting.
-            seller_total = sum(float(it.get('subtotal', 0) or 0) for it in seller_items)
+            seller_total = sum(float(it.get('subtotal', 0) or 0)
+                               for it in seller_items)
 
             safe_items = []
             for it in seller_items:
@@ -1034,7 +1077,8 @@ def payment():
                 except Exception:
                     price_val = Decimal('0')
                 try:
-                    subtotal_val = Decimal(str(float(it.get('subtotal', 0) or 0)))
+                    subtotal_val = Decimal(
+                        str(float(it.get('subtotal', 0) or 0)))
                 except Exception:
                     subtotal_val = Decimal('0')
                 try:

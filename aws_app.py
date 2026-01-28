@@ -223,11 +223,12 @@ def admin_users():
 
     all_users = users_table.scan().get('Items', [])
     role_filter = request.args.get('role', 'all')
+    search = request.args.get('search', '')
 
     if role_filter != 'all':
         all_users = [u for u in all_users if u.get('role') == role_filter]
 
-    return render_template('admin_users.html', user=user, users=all_users, role_filter=role_filter)
+    return render_template('admin_users.html', user=user, users=all_users, role_filter=role_filter, search=search)
 
 
 @app.route('/admin/user/<email>')
@@ -660,6 +661,34 @@ def seller_edit_book(book_id):
         return redirect(url_for('seller_books'))
 
     return render_template('seller_add_book.html', user=user, book=book)
+
+
+@app.route('/seller/book/<book_id>/delete', methods=['POST'])
+def seller_delete_book(book_id):
+    user = session.get('user')
+    if not user or user.get('role') != 'seller':
+        flash('Access denied. Seller account required.', 'error')
+        return redirect(url_for('index'))
+
+    response = books_table.get_item(Key={'id': book_id})
+    if 'Item' not in response:
+        flash('Book not found.', 'error')
+        return redirect(url_for('seller_books'))
+
+    book = response['Item']
+    if book.get('seller_email') != user.get('email'):
+        flash('You are not authorized to delete this book.', 'error')
+        return redirect(url_for('seller_books'))
+
+    try:
+        books_table.delete_item(Key={'id': book_id})
+        send_notification('Book Deleted', f"Seller {user.get('email')} deleted book: {book.get('title')}")
+        flash('Book deleted successfully.', 'success')
+    except Exception as e:
+        print(f"Error deleting book: {e}")
+        flash('Failed to delete book.', 'error')
+
+    return redirect(url_for('seller_books'))
 
 
 @app.route('/seller/orders')

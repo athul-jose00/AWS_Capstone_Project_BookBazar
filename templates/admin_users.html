@@ -42,28 +42,10 @@ extra_css %}
             <div class="form-group">
               <select name="role" class="form-control">
                 <option value="">All Roles</option>
-                <option
-                  value="customer"
-                  {%
-                  if
-                  role_filter=""
-                  ="customer"
-                  %}selected{%
-                  endif
-                  %}
-                >
+                <option value="customer" {% if role_filter == 'customer' %}selected{% endif %}>
                   Customers
                 </option>
-                <option
-                  value="seller"
-                  {%
-                  if
-                  role_filter=""
-                  ="seller"
-                  %}selected{%
-                  endif
-                  %}
-                >
+                <option value="seller" {% if role_filter == 'seller' %}selected{% endif %}>
                   Sellers
                 </option>
               </select>

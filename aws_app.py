@@ -589,6 +589,79 @@ def seller_add_book():
     return render_template('seller_add_book.html', user=user)
 
 
+@app.route('/seller/book/<book_id>/edit', methods=['GET', 'POST'])
+def seller_edit_book(book_id):
+    user = session.get('user')
+    if not user or user.get('role') != 'seller':
+        flash('Access denied. Seller account required.', 'error')
+        return redirect(url_for('index'))
+
+    # fetch book from DynamoDB
+    response = books_table.get_item(Key={'id': book_id})
+    if 'Item' not in response:
+        flash('Book not found.', 'error')
+        return redirect(url_for('seller_books'))
+
+    book = response['Item']
+
+    # ensure seller owns the book
+    if book.get('seller_email') != user.get('email'):
+        flash('You are not authorized to edit this book.', 'error')
+        return redirect(url_for('seller_books'))
+
+    if request.method == 'POST':
+        updates = {}
+        # collect fields if provided
+        if request.form.get('title') is not None:
+            updates['title'] = request.form.get('title')
+        if request.form.get('author') is not None:
+            updates['author'] = request.form.get('author')
+        if request.form.get('summary') is not None:
+            updates['summary'] = request.form.get('summary')
+        if request.form.get('genre') is not None:
+            updates['genre'] = request.form.get('genre')
+        if request.form.get('cover_url'):
+            updates['cover_url'] = request.form.get('cover_url')
+        # numeric conversions
+        price_val = request.form.get('price')
+        if price_val:
+            try:
+                updates['price'] = Decimal(str(price_val))
+            except Exception:
+                pass
+        stock_val = request.form.get('stock')
+        if stock_val:
+            try:
+                updates['stock'] = int(stock_val)
+            except Exception:
+                pass
+
+        if updates:
+            expr_parts = []
+            expr_values = {}
+            for k, v in updates.items():
+                expr_parts.append(f"{k} = :{k}")
+                expr_values[f":{k}"] = v
+
+            update_expr = 'SET ' + ', '.join(expr_parts)
+            try:
+                books_table.update_item(
+                    Key={'id': book_id},
+                    UpdateExpression=update_expr,
+                    ExpressionAttributeValues=expr_values
+                )
+                send_notification(
+                    "Book Updated", f"Seller {user.get('email')} updated book: {updates.get('title', book.get('title'))}")
+                flash('Book updated successfully.', 'success')
+            except Exception as e:
+                print(f"Error updating book: {e}")
+                flash('Failed to update book.', 'error')
+
+        return redirect(url_for('seller_books'))
+
+    return render_template('seller_add_book.html', user=user, book=book)
+
+
 @app.route('/seller/orders')
 def seller_orders():
     user = session.get('user')
@@ -617,6 +690,7 @@ def cart():
     cart_data = session.get('cart', {})
     cart_items = []
     total = 0.0
+    missing_ids = []
 
     for book_id, qty in cart_data.items():
         response = books_table.get_item(Key={'id': book_id})
@@ -630,6 +704,16 @@ def cart():
                 'qty': qty,
                 'subtotal': subtotal
             })
+        else:
+            # Book id present in session cart but missing from DB (e.g., item removed)
+            missing_ids.append(book_id)
+
+    # Clean up any missing book ids from the session so header/cart_count stays accurate
+    if missing_ids:
+        for mid in missing_ids:
+            cart_data.pop(mid, None)
+        session['cart'] = cart_data
+        flash(f"Removed {len(missing_ids)} unavailable item(s) from your cart.", 'info')
 
     return render_template('cart.html', user=user, cart_items=cart_items, total=round(total, 2))
 

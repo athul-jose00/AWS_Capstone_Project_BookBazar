@@ -428,6 +428,55 @@ document.addEventListener("DOMContentLoaded", () => {
       document.body.style.overflow = "hidden";
     }
 
+    // Allow other scripts (chatbot) to open the same modal by passing a book object
+    window.showBookDetails = function (book) {
+      try {
+        // fill modal fields from book object returned by /api/book/<id>
+        const bookId = book.id;
+        const title = book.title || "";
+        const author = book.author || "";
+        const summary = book.summary || "No summary available.";
+        const cover = book.cover_url || "";
+        const priceText = `$${parseFloat(book.price || 0).toFixed(2)}`;
+
+        if (img) {
+          img.src = cover;
+          img.alt = title;
+        }
+        if (mt) mt.textContent = title;
+        if (ma) ma.textContent = author;
+        if (mp) mp.textContent = priceText;
+        if (ms) ms.textContent = summary;
+        if (msel) msel.textContent = book.seller_name || "BookBazaar";
+        if (mselc) mselc.textContent = book.seller_email || "";
+        if (addCartForm) addCartForm.action = `/cart/add/${bookId}`;
+        if (wishBtn) wishBtn.dataset.bookId = bookId;
+
+        // stock unknown via API endpoint, show N/A
+        if (mstock) mstock.textContent = "N/A";
+
+        // set wishlist button label conservatively
+        try {
+          const isWish = document
+            .querySelector(`.card-heart[data-book-id="${bookId}"]`)
+            ?.classList.contains("hearted");
+          if (wishBtn) {
+            wishBtn.textContent = isWish
+              ? "Remove from wishlist"
+              : "Add to wishlist";
+            wishBtn.setAttribute("aria-pressed", isWish ? "true" : "false");
+          }
+        } catch (e) {
+          // ignore
+        }
+
+        modal.setAttribute("aria-hidden", "false");
+        document.body.style.overflow = "hidden";
+      } catch (e) {
+        console.error("showBookDetails error:", e);
+      }
+    };
+
     function closeModal() {
       modal.setAttribute("aria-hidden", "true");
       document.body.style.overflow = "";

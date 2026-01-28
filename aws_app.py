@@ -748,7 +748,55 @@ def seller_orders():
     )
     orders = response.get('Items', [])
 
-    return render_template('seller_orders.html', user=user, orders=orders)
+    # Normalize orders so templates can access `o.buyer.name` and `o.buyer.email`
+    normalized = []
+    for o in orders:
+        # buyer info may be stored as top-level fields
+        buyer_name = o.get('buyer_name') or (
+            o.get('buyer') or {}).get('name', '')
+        buyer_email = o.get('buyer_email') or (
+            o.get('buyer') or {}).get('email', '')
+        buyer = {'name': buyer_name, 'email': buyer_email}
+
+        # normalize total and item numeric types for template formatting
+        total_val = o.get('total', 0) or 0
+        try:
+            if isinstance(total_val, Decimal):
+                total_val = float(total_val)
+            else:
+                total_val = float(total_val)
+        except Exception:
+            total_val = 0.0
+
+        items = o.get('items', []) or []
+        nice_items = []
+        for it in items:
+            try:
+                subtotal = it.get('subtotal', 0) or 0
+                if isinstance(subtotal, Decimal):
+                    subtotal = float(subtotal)
+                else:
+                    subtotal = float(subtotal)
+            except Exception:
+                subtotal = 0.0
+            try:
+                qty = int(it.get('qty', 0) or 0)
+            except Exception:
+                qty = 0
+
+            nice_items.append({
+                'qty': qty,
+                'title': it.get('title', ''),
+                'subtotal': subtotal
+            })
+
+        no = dict(o)
+        no['buyer'] = buyer
+        no['total'] = total_val
+        no['items'] = nice_items
+        normalized.append(no)
+
+    return render_template('seller_orders.html', user=user, orders=normalized)
 
 
 @app.route('/seller/order/<order_id>/status', methods=['POST'])

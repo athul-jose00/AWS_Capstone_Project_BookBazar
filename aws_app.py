@@ -251,7 +251,19 @@ def admin_user_details(email):
     )
     user_orders = response.get('Items', [])
 
-    return render_template('admin_user_details.html', user=user, target_user=target_user, orders=user_orders)
+    # Attach orders and safe defaults onto the target_user so the template
+    # can reference `user_info.*` fields without raising UndefinedError
+    try:
+        target_user['orders'] = user_orders
+    except Exception:
+        target_user['orders'] = []
+    # ensure other optional collections exist to avoid template errors
+    target_user.setdefault('wishlist', [])
+    target_user.setdefault('cart', {})
+    target_user.setdefault('books', [])
+    target_user.setdefault('received_orders', [])
+
+    return render_template('admin_user_details.html', user=user, user_info=target_user, user_email=email)
 
 
 @app.route('/admin/user/<email>/delete', methods=['POST'])
@@ -380,7 +392,27 @@ def admin_seller_details(email):
     )
     seller_orders = response.get('Items', [])
 
-    return render_template('admin_seller_details.html', user=user, seller=seller, books=seller_books, orders=seller_orders)
+    # Normalize totals and compute total revenue for the seller
+    total_revenue = 0.0
+    for o in seller_orders:
+        try:
+            if isinstance(o.get('total'), Decimal):
+                o['total'] = float(o['total'])
+            else:
+                o['total'] = float(o.get('total', 0) or 0)
+        except Exception:
+            o['total'] = 0.0
+        try:
+            total_revenue += float(o.get('total', 0) or 0)
+        except Exception:
+            continue
+
+    # Attach books and computed stats onto seller dict for template convenience
+    seller['books'] = seller_books
+    seller['received_orders'] = seller_orders
+    seller['total_revenue'] = round(total_revenue, 2)
+
+    return render_template('admin_seller_details.html', user=user, seller=seller)
 
 
 @app.route('/admin/orders')
@@ -991,7 +1023,34 @@ def payment():
 
         # Create order for each seller
         for seller_email, seller_items in sellers_involved.items():
-            seller_total = sum(it['subtotal'] for it in seller_items)
+            # seller_items may contain Python floats which DynamoDB rejects;
+            # convert numeric fields to Decimal before persisting.
+            seller_total = sum(float(it.get('subtotal', 0) or 0) for it in seller_items)
+
+            safe_items = []
+            for it in seller_items:
+                try:
+                    price_val = Decimal(str(float(it.get('price', 0) or 0)))
+                except Exception:
+                    price_val = Decimal('0')
+                try:
+                    subtotal_val = Decimal(str(float(it.get('subtotal', 0) or 0)))
+                except Exception:
+                    subtotal_val = Decimal('0')
+                try:
+                    qty_val = int(it.get('qty', 0) or 0)
+                except Exception:
+                    qty_val = 0
+
+                safe_item = {
+                    'book_id': it.get('book_id'),
+                    'title': it.get('title'),
+                    'author': it.get('author'),
+                    'qty': qty_val,
+                    'price': price_val,
+                    'subtotal': subtotal_val
+                }
+                safe_items.append(safe_item)
 
             orders_table.put_item(Item={
                 'id': f"{order_id}-{seller_email}",
@@ -1001,7 +1060,7 @@ def payment():
                 'seller_email': seller_email,
                 'created_at': datetime.utcnow().isoformat(),
                 'status': 'Placed',
-                'items': seller_items,
+                'items': safe_items,
                 'total': Decimal(str(seller_total)),
                 'shipping_address': addr
             })

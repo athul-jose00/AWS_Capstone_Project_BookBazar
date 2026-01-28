@@ -764,11 +764,16 @@ def cart():
                 price = 0.0
             subtotal = qty_int * price
             total += subtotal
-            cart_items.append({
-                'book': book,
+            # Build flat item dict expected by cart.html template
+            item = {
+                'id': str(book.get('id')) if book.get('id') is not None else None,
+                'title': book.get('title', ''),
+                'author': book.get('author', ''),
+                'price': price,
                 'qty': qty_int,
-                'subtotal': subtotal
-            })
+                'subtotal': subtotal,
+            }
+            cart_items.append(item)
         else:
             # show user-friendly message for missing items
             flash(

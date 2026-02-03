@@ -46,14 +46,26 @@ extra_css %}
               <tr>
                 <td>{{ seller.email }}</td>
                 <td>{{ seller.name }}</td>
-                <td>{{ seller.books }}</td>
-                <td>{{ seller.orders }}</td>
+                <td>
+                  {% if seller.books %}{{ seller.books }}{% else %}-{% endif %}
+                </td>
+                <td>
+                  {% if seller.orders %}{{ seller.orders }}{% else %}-{% endif
+                  %}
+                </td>
                 <td>
                   <span class="badge badge-active">
                     <i class="fas fa-check-circle"></i> {{ seller.status }}
                   </span>
                 </td>
-                <td>
+                <td
+                  style="
+                    display: flex;
+                    gap: 0.5rem;
+                    justify-content: flex-start;
+                    align-items: center;
+                  "
+                >
                   <div class="action-buttons">
                     <a
                       href="{{ url_for('admin_seller_details', email=seller.email) }}"

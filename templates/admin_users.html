@@ -41,14 +41,32 @@ extra_css %}
             </div>
             <div class="form-group">
               <select name="role" class="form-control">
-  <option value="">All Roles</option>
-  <option value="customer" {% if role_filter == 'customer' %}selected{% endif %}>
-    Customers
-  </option>
-  <option value="seller" {% if role_filter == 'seller' %}selected{% endif %}>
-    Sellers
-  </option>
-</select>
+                <option value="">All Roles</option>
+                <option
+                  value="customer"
+                  {%
+                  if
+                  role_filter=""
+                  ="customer"
+                  %}selected{%
+                  endif
+                  %}
+                >
+                  Customers
+                </option>
+                <option
+                  value="seller"
+                  {%
+                  if
+                  role_filter=""
+                  ="seller"
+                  %}selected{%
+                  endif
+                  %}
+                >
+                  Sellers
+                </option>
+              </select>
             </div>
             <button type="submit" class="btn btn-primary">
               <i class="fas fa-search"></i> Search
@@ -64,8 +82,6 @@ extra_css %}
                 <th>Email</th>
                 <th>Name</th>
                 <th>Role</th>
-                <th>Orders</th>
-                <th>Books</th>
                 <th>Actions</th>
               </tr>
             </thead>
@@ -83,31 +99,34 @@ extra_css %}
                     <i class="fas fa-user"></i> Customer {% endif %}
                   </span>
                 </td>
-                <td>{{ user_item.orders }}</td>
-                <td>{{ user_item.books }}</td>
-                <td>
-                  <div class="action-buttons">
-                    <a
-                      href="{{ url_for('admin_user_details', email=user_item.email) }}"
-                      class="btn btn-sm btn-info"
-                    >
-                      <i class="fas fa-eye"></i> View
-                    </a>
-                    <form
-                      method="POST"
-                      action="{{ url_for('admin_delete_user', email=user_item.email) }}"
-                      style="display: inline"
-                      onsubmit="
-                        return confirm(
-                          'Are you sure you want to delete this user?',
-                        );
-                      "
-                    >
-                      <button type="submit" class="btn btn-sm btn-danger">
-                        <i class="fas fa-trash"></i> Delete
-                      </button>
-                    </form>
-                  </div>
+                <td
+                  style="
+                    display: flex;
+                    gap: 0.5rem;
+                    justify-content: flex-start;
+                    align-items: center;
+                  "
+                >
+                  <a
+                    href="{{ url_for('admin_user_details', email=user_item.email) }}"
+                    class="btn btn-sm btn-info"
+                  >
+                    <i class="fas fa-eye"></i> View
+                  </a>
+                  <form
+                    method="POST"
+                    action="{{ url_for('admin_delete_user', email=user_item.email) }}"
+                    style="display: inline"
+                    onsubmit="
+                      return confirm(
+                        'Are you sure you want to delete this user?',
+                      );
+                    "
+                  >
+                    <button type="submit" class="btn btn-sm btn-danger">
+                      <i class="fas fa-trash"></i> Delete
+                    </button>
+                  </form>
                 </td>
               </tr>
               {% endfor %}

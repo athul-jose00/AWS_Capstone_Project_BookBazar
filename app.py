@@ -11,7 +11,7 @@ app.secret_key = 'dev-secret-change-me'
 
 # Hugging Face Configuration
 HF_API_KEY = os.environ.get(
-    'HF_TOKEN', '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')
+    'HF_TOKEN', 'test')
 HF_CLIENT = InferenceClient(api_key=HF_API_KEY) if HF_API_KEY else None
 
 
@@ -344,13 +344,15 @@ def admin_users():
         if role_filter and user_data.get('role', 'customer') != role_filter:
             continue
 
+        orders_count = len(user_data.get('orders', []))
+        books_count = len(user_data.get('books', []))
         user_info = {
             'email': email,
             'name': user_data.get('name', 'Unknown'),
             'role': user_data.get('role', 'customer'),
             'created_at': 'N/A',
-            'orders': len(user_data.get('orders', [])),
-            'books': len(user_data.get('books', []))
+            'orders': orders_count if orders_count > 0 else '-',
+            'books': books_count if books_count > 0 else '-'
         }
         users_list.append(user_info)
 
@@ -493,11 +495,13 @@ def admin_sellers():
     sellers = []
     for email, user_data in USERS.items():
         if user_data.get('role') == 'seller':
+            seller_books = len(user_data.get('books', []))
+            seller_orders = len(user_data.get('received_orders', []))
             seller_info = {
                 'email': email,
                 'name': user_data.get('name', 'Unknown'),
-                'books': len(user_data.get('books', [])),
-                'orders': len(user_data.get('received_orders', [])),
+                'books': seller_books if seller_books > 0 else '-',
+                'orders': seller_orders if seller_orders > 0 else '-',
                 'status': 'Active'
             }
             sellers.append(seller_info)

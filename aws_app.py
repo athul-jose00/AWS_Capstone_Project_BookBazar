@@ -221,14 +221,40 @@ def admin_users():
         flash('Access denied.', 'error')
         return redirect(url_for('index'))
 
-    all_users = users_table.scan().get('Items', [])
+    raw_users = users_table.scan().get('Items', [])
     role_filter = request.args.get('role', 'all')
     search = request.args.get('search', '')
 
+    # Apply role filter first
     if role_filter != 'all':
-        all_users = [u for u in all_users if u.get('role') == role_filter]
+        raw_users = [u for u in raw_users if u.get('role') == role_filter]
 
-    return render_template('admin_users.html', user=user, users=all_users, role_filter=role_filter, search=search)
+    users_enriched = []
+    for u in raw_users:
+        email = u.get('email')
+
+        # count orders for this user (buyer)
+        try:
+            resp = orders_table.scan(
+                FilterExpression=Attr('buyer_email').eq(email))
+            orders_count = len(resp.get('Items', []))
+        except Exception:
+            orders_count = 0
+
+        # count books for this user (if seller)
+        try:
+            resp = books_table.scan(
+                FilterExpression=Attr('seller_email').eq(email))
+            books_count = len(resp.get('Items', []))
+        except Exception:
+            books_count = 0
+
+        user_copy = dict(u)
+        user_copy['orders'] = orders_count if orders_count > 0 else '-'
+        user_copy['books'] = books_count if books_count > 0 else '-'
+        users_enriched.append(user_copy)
+
+    return render_template('admin_users.html', user=user, users=users_enriched, role_filter=role_filter, search=search)
 
 
 @app.route('/admin/user/<email>')
@@ -362,7 +388,31 @@ def admin_sellers():
         return redirect(url_for('index'))
 
     all_users = users_table.scan().get('Items', [])
-    sellers = [u for u in all_users if u.get('role') == 'seller']
+    raw_sellers = [u for u in all_users if u.get('role') == 'seller']
+
+    sellers = []
+    for s in raw_sellers:
+        email = s.get('email')
+        # count seller books
+        try:
+            resp = books_table.scan(
+                FilterExpression=Attr('seller_email').eq(email))
+            books_count = len(resp.get('Items', []))
+        except Exception:
+            books_count = 0
+
+        # count received orders for seller
+        try:
+            resp = orders_table.scan(
+                FilterExpression=Attr('seller_email').eq(email))
+            orders_count = len(resp.get('Items', []))
+        except Exception:
+            orders_count = 0
+
+        s_copy = dict(s)
+        s_copy['books'] = books_count if books_count > 0 else '-'
+        s_copy['orders'] = orders_count if orders_count > 0 else '-'
+        sellers.append(s_copy)
 
     return render_template('admin_sellers.html', user=user, sellers=sellers)
 
@@ -422,16 +472,50 @@ def admin_orders():
         flash('Access denied.', 'error')
         return redirect(url_for('index'))
 
-    all_orders = orders_table.scan().get('Items', [])
-    all_orders = sorted(all_orders, key=lambda x: x.get(
+    raw_orders = orders_table.scan().get('Items', [])
+
+    # Normalize orders for template: ensure customer name/email, totals, items_count
+    normalized = []
+    for o in raw_orders:
+        cust_email = o.get('buyer_email') or (
+            o.get('buyer') or {}).get('email')
+        cust_name = o.get('buyer_name') or (
+            o.get('buyer') or {}).get('name') or cust_email
+
+        # normalize total
+        total_val = o.get('total', 0) or 0
+        try:
+            if isinstance(total_val, Decimal):
+                total_val = float(total_val)
+            else:
+                total_val = float(total_val)
+        except Exception:
+            total_val = 0.0
+
+        items = o.get('items', []) or []
+        items_count = len(items)
+
+        order_info = {
+            'id': o.get('id') or o.get('order_id') or '',
+            'customer': cust_name,
+            'customer_email': cust_email,
+            'status': o.get('status', 'Unknown'),
+            'total': total_val,
+            'created_at': o.get('created_at', ''),
+            'items_count': items_count
+        }
+        normalized.append(order_info)
+
+    # sort
+    normalized = sorted(normalized, key=lambda x: x.get(
         'created_at', ''), reverse=True)
 
     status_filter = request.args.get('status', 'all')
     if status_filter != 'all':
-        all_orders = [o for o in all_orders if o.get(
+        normalized = [o for o in normalized if o.get(
             'status') == status_filter]
 
-    return render_template('admin_orders.html', user=user, orders=all_orders, status_filter=status_filter)
+    return render_template('admin_orders.html', user=user, orders=normalized, statuses=sorted(set(o.get('status') for o in normalized)), status_filter=status_filter)
 
 
 @app.route('/admin/order/<order_id>')
@@ -498,6 +582,67 @@ def admin_order_details(order_id):
         customer_name = order.get('buyer_name', '')
 
     return render_template('admin_order_details.html', user=user, order=order, customer_email=customer_email, customer_name=customer_name)
+
+
+@app.route('/admin/order/<order_id>/item/<item_id>/remove', methods=['POST'])
+def admin_remove_order_item(order_id, item_id):
+    user = session.get('user')
+    if not user or not user.get('is_admin'):
+        flash('Access denied.', 'error')
+        return redirect(url_for('index'))
+
+    # fetch order
+    resp = orders_table.get_item(Key={'id': order_id})
+    if 'Item' not in resp:
+        flash('Order not found.', 'error')
+        return redirect(url_for('admin_orders'))
+
+    order = resp['Item']
+    items = order.get('items', []) or []
+
+    # find and remove item (match book_id or id)
+    new_items = []
+    removed = False
+    for it in items:
+        it_id = it.get('book_id') or it.get('id') or str(it.get('id'))
+        if str(it_id) == str(item_id) and not removed:
+            removed = True
+            continue
+        new_items.append(it)
+
+    if not removed:
+        flash('Item not found in order.', 'error')
+        return redirect(url_for('admin_order_details', order_id=order_id))
+
+    # recompute total
+    new_total = 0.0
+    for it in new_items:
+        try:
+            subtotal = it.get('subtotal', 0) or 0
+            if isinstance(subtotal, Decimal):
+                subtotal = float(subtotal)
+            else:
+                subtotal = float(subtotal)
+        except Exception:
+            subtotal = 0.0
+        new_total += subtotal
+
+    # update DynamoDB order
+    try:
+        orders_table.update_item(
+            Key={'id': order_id},
+            UpdateExpression='SET items = :items, total = :total',
+            ExpressionAttributeValues={
+                ':items': new_items,
+                ':total': Decimal(str(new_total))
+            }
+        )
+        flash('Item removed from order.', 'success')
+    except Exception as e:
+        print(f"Error updating order: {e}")
+        flash('Failed to update order.', 'error')
+
+    return redirect(url_for('admin_order_details', order_id=order_id))
 
 
 @app.route('/admin/analytics')
@@ -1213,29 +1358,35 @@ def chatbot_api():
         # Get user's orders if logged in
         user = session.get('user')
         user_orders = []
-        user_wishlist = session.get('wishlist', [])
-        if user and not user.get('is_admin'):
+        user_wishlist = []
+        if user:
             email = user.get('email')
-            response = orders_table.scan(
-                FilterExpression=Attr('buyer_email').eq(email))
-            user_orders = response.get('Items', [])
+            try:
+                resp = orders_table.scan(
+                    FilterExpression=Attr('buyer_email').eq(email)
+                )
+                user_orders = resp.get('Items', [])
+            except Exception:
+                user_orders = []
+            user_wishlist = session.get('wishlist', [])
 
-        # Prepare detailed context for LLM
+        # Build a minimal book context for the LLM
         books_context = []
-        for book in available_books:
+        for b in available_books:
             books_context.append({
-                'id': str(book.get('id')) if book.get('id') is not None else None,
-                'title': book.get('title'),
-                'author': book.get('author'),
-                'price': float(book.get('price', 0)),
-                'genre': book.get('genre', 'Unknown'),
-                'stock': int(book.get('stock', 0)),
-                'summary': book.get('summary', '')
+                'id': str(b.get('id')),
+                'title': b.get('title', ''),
+                'author': b.get('author', ''),
+                'genre': b.get('genre', 'Unknown'),
+                'price': float(b.get('price', 0) or 0),
+                'stock': int(b.get('stock', 0) or 0),
+                'summary': b.get('summary', '')
             })
 
+        genres = sorted({b.get('genre', 'Unknown') for b in available_books})
         context = {
             'total_books': len(available_books),
-            'genres': list(set(b.get('genre', 'Unknown') for b in available_books)),
+            'genres': genres,
             'all_books': books_context,
             'user_orders_count': len(user_orders),
             'user_wishlist_count': len(user_wishlist)
@@ -1279,10 +1430,12 @@ IMPORTANT RULES:
 
 Example:
 User: "recommend a fiction book"
-Response: {{"message": "I recommend 'The Great Gatsby' by F. Scott Fitzgerald - a timeless classic about the Jazz Age and the American Dream!", "recommended_books": [1], "action": "none"}}
+Response: {{"message": "I recommend 'The Great Gatsby' by F. Scott Fitzgerald - a timeless classic about the Jazz Age and the American Dream!",
+    "recommended_books": [1], "action": "none"}}
 
 User: "add it to wishlist"
-Response: {{"message": "I've added 'The Great Gatsby' to your wishlist!", "recommended_books": [1], "action": "add_to_wishlist"}}
+Response: {{"message": "I've added 'The Great Gatsby' to your wishlist!",
+    "recommended_books": [1], "action": "add_to_wishlist"}}
 """
 
                 completion = HF_CLIENT.chat.completions.create(

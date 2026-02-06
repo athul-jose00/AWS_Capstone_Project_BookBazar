@@ -82,7 +82,7 @@ extra_css %}
               <tr>
                 <td>{{ book.title }}</td>
                 <td>{{ book.author }}</td>
-                <td>{{ book.seller_name or book.seller_email or '—' }}</td>
+                <td>{{ book.seller.name if book.seller else '—' }}</td>
                 <td>{{ book.genre }}</td>
                 <td>${{ "%.2f"|format(book.price) }}</td>
                 <td>{{ book.stock }}</td>

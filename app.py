@@ -92,6 +92,24 @@ MOCK_BOOKS = [
     }
 ]
 
+# Register sellers from MOCK_BOOKS into USERS
+for book in MOCK_BOOKS:
+    if 'seller' in book and 'contact' in book['seller']:
+        s_email = book['seller']['contact']
+        s_name = book['seller']['name']
+        if s_email not in USERS:
+            USERS[s_email] = {
+                'name': s_name,
+                'password': generate_password_hash(s_email),
+                'role': 'seller',
+                'books': [],
+                'received_orders': [],
+                'wishlist': []
+            }
+        # Add book to seller's list
+        USERS[s_email]['books'].append(book)
+
+
 # --- Demo/test data: a sample seller, buyer, two books and one order (for local testing) ---
 demo_seller_email = 'seller_demo@example.com'
 demo_buyer_email = 'buyer_demo@example.com'

@@ -52,13 +52,13 @@ def _normalize_book(book):
     """Normalize book data from DynamoDB for templates."""
     if not book:
         return book
-    
+
     # Ensure numeric types are converted to float/int
     if 'price' in book and isinstance(book['price'], Decimal):
         book['price'] = float(book['price'])
     if 'stock' in book and isinstance(book['stock'], Decimal):
         book['stock'] = int(book['stock'])
-        
+
     # Reconstruct nested seller object from flat fields if missing
     if 'seller' not in book and ('seller_name' in book or 'seller_email' in book):
         book['seller'] = {
@@ -333,7 +333,8 @@ def admin_books():
         flash('Access denied.', 'error')
         return redirect(url_for('index'))
 
-    all_books = [_normalize_book(b) for b in books_table.scan().get('Items', [])]
+    all_books = [_normalize_book(b)
+                 for b in books_table.scan().get('Items', [])]
     # derive genre list for filter dropdown
     genres = sorted(list({b.get('genre', 'Unknown') for b in all_books}))
 

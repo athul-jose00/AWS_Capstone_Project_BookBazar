@@ -34,7 +34,7 @@ books_table = dynamodb.Table('BookBazaar_Books')
 orders_table = dynamodb.Table('BookBazaar_Orders')
 
 # SNS Topic ARN
-SNS_TOPIC_ARN = 'arn:aws:sns:us-east-1:537124956479:bookbazar_topic'
+SNS_TOPIC_ARN = 'arn:aws:sns:eu-north-1:664418958020:bookbazar_topic'
 
 
 def send_notification(subject, message):

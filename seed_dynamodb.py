@@ -13,11 +13,12 @@ users_table = dynamodb.Table('BookBazaar_Users')
 books_table = dynamodb.Table('BookBazaar_Books')
 orders_table = dynamodb.Table('BookBazaar_Orders')
 
+
 def seed_data():
     print("Starting data seeding...")
-    
+
     # 1. Define Data Source (Mirrors app.py)
-    
+
     # Mock Books from app.py
     # Note: IDs are converted to strings for DynamoDB compatibility
     mock_books_data = [
@@ -115,7 +116,7 @@ def seed_data():
         'cover_url': 'https://placehold.co/150x220/e0e0e0/333333?text=Design',
         'stock': 5
     }
-    
+
     mock_books_data.append(demo_book_a)
     mock_books_data.append(demo_book_b)
 
@@ -139,7 +140,7 @@ def seed_data():
                 'password': generate_password_hash(s_email),
                 'role': 'seller'
             }
-    
+
     # 3. Demo Buyer
     users_to_seed[demo_buyer_email] = {
         'name': 'Demo Buyer',
@@ -150,14 +151,14 @@ def seed_data():
     # 4. Demo Order (Split by seller as per AWS app logic)
     # The demo order contains items from demo_book_a and demo_book_b, both owned by 'seller_demo@example.com'
     # So it will be just one order entry in DynamoDB
-    
+
     order_id = 'ORD-DEMO-1'
     order_created = datetime.utcnow().isoformat()
-    
+
     # Items need to be Decimal for DynamoDB
     items = []
     items.append({
-        'book_id': demo_book_a['id'], # aws_app uses book_id in items
+        'book_id': demo_book_a['id'],  # aws_app uses book_id in items
         'title': demo_book_a['title'],
         'author': demo_book_a['author'],
         'qty': 1,
@@ -172,9 +173,9 @@ def seed_data():
         'price': Decimal(str(demo_book_b['price'])),
         'subtotal': Decimal(str(demo_book_b['price'] * 2))
     })
-    
+
     total = sum(it['subtotal'] for it in items)
-    
+
     demo_orders = [
         {
             'id': f"{order_id}-{demo_seller_email}",
@@ -209,7 +210,7 @@ def seed_data():
                 'password': u_data['password'],
                 'role': u_data['role'],
                 'created_at': datetime.utcnow().isoformat(),
-                'addresses': [], # Initialize empty
+                'addresses': [],  # Initialize empty
                 # 'cart': {}, # DynamoDB doesn't like empty maps sometimes, better to leave out or handle carefully
                 # 'wishlist': []
             }
@@ -247,6 +248,7 @@ def seed_data():
     print("\n--- List of Seeded Emails ---")
     for email in sorted(users_to_seed.keys()):
         print(email)
+
 
 if __name__ == '__main__':
     seed_data()

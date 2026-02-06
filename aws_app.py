@@ -47,6 +47,27 @@ def send_notification(subject, message):
     except ClientError as e:
         print(f"Error sending notification: {e}")
 
+
+def _normalize_book(book):
+    """Normalize book data from DynamoDB for templates."""
+    if not book:
+        return book
+    
+    # Ensure numeric types are converted to float/int
+    if 'price' in book and isinstance(book['price'], Decimal):
+        book['price'] = float(book['price'])
+    if 'stock' in book and isinstance(book['stock'], Decimal):
+        book['stock'] = int(book['stock'])
+        
+    # Reconstruct nested seller object from flat fields if missing
+    if 'seller' not in book and ('seller_name' in book or 'seller_email' in book):
+        book['seller'] = {
+            'name': book.get('seller_name', 'Unknown'),
+            'contact': book.get('seller_email', '')
+        }
+    return book
+
+
 # ==================== PUBLIC ROUTES ====================
 
 
@@ -157,7 +178,7 @@ def dashboard():
 
     # Get all books
     response = books_table.scan()
-    books = response.get('Items', [])
+    books = [_normalize_book(b) for b in response.get('Items', [])]
 
     return render_template('customer_dashboard.html', user=user, books=books)
 
@@ -166,7 +187,7 @@ def dashboard():
 def browse():
     user = session.get('user')
     response = books_table.scan()
-    books = response.get('Items', [])
+    books = [_normalize_book(b) for b in response.get('Items', [])]
     return render_template('customer_dashboard.html', user=user, books=books)
 
 
@@ -312,7 +333,7 @@ def admin_books():
         flash('Access denied.', 'error')
         return redirect(url_for('index'))
 
-    all_books = books_table.scan().get('Items', [])
+    all_books = [_normalize_book(b) for b in books_table.scan().get('Items', [])]
     # derive genre list for filter dropdown
     genres = sorted(list({b.get('genre', 'Unknown') for b in all_books}))
 
@@ -344,7 +365,7 @@ def admin_book_details(book_id):
         flash('Book not found.', 'error')
         return redirect(url_for('admin_books'))
 
-    book = response['Item']
+    book = _normalize_book(response['Item'])
 
     if request.method == 'POST':
         books_table.update_item(
@@ -412,6 +433,7 @@ def admin_sellers():
         s_copy = dict(s)
         s_copy['books'] = books_count if books_count > 0 else '-'
         s_copy['orders'] = orders_count if orders_count > 0 else '-'
+        s_copy['status'] = 'Active'
         sellers.append(s_copy)
 
     return render_template('admin_sellers.html', user=user, sellers=sellers)
@@ -1127,7 +1149,7 @@ def wishlist():
     for book_id in wishlist_ids:
         response = books_table.get_item(Key={'id': book_id})
         if 'Item' in response:
-            wishlist_items.append(response['Item'])
+            wishlist_items.append(_normalize_book(response['Item']))
 
     return render_template('wishlist.html', user=user, items=wishlist_items)
 

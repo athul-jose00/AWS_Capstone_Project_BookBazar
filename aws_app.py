@@ -693,6 +693,7 @@ def admin_analytics():
 
     return render_template('admin_analytics.html', user=user, analytics=analytics)
 
+
 # ==================== SELLER ROUTES ====================
 
 
@@ -984,6 +985,7 @@ def seller_update_order_status(order_id):
         flash('Failed to update order status.', 'error')
 
     return redirect(url_for('seller_orders'))
+
 
 # ==================== CUSTOMER ROUTES ====================
 

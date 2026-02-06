@@ -148,6 +148,7 @@ document.addEventListener("DOMContentLoaded", () => {
         const res = await fetch(action, {
           method: "POST",
           credentials: "same-origin",
+          headers: { Accept: "application/json" },
         });
         if (!res.ok) throw new Error("network");
         // now remove from wishlist
@@ -198,6 +199,7 @@ document.addEventListener("DOMContentLoaded", () => {
         const res = await fetch(action, {
           method: "POST",
           credentials: "same-origin",
+          headers: { Accept: "application/json" },
         });
         if (!res.ok) throw new Error("network");
         const data = await res.json();

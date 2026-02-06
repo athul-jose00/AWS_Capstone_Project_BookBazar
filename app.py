@@ -32,7 +32,7 @@ MOCK_BOOKS = [
         'seller': {'name': 'ClassicBooks Co.', 'contact': 'classic@bookseller.example.com'},
         'price': 10.99,
         'genre': 'Fiction',
-        'cover_url': 'https://placehold.co/150x220/e0e0e0/333333?text=Gatsby',
+        'cover_url': 'https://upload.wikimedia.org/wikipedia/commons/7/7a/The_Great_Gatsby_Cover_1925_Retouched.jpg',
         'stock': 10
     },
     {
@@ -43,7 +43,7 @@ MOCK_BOOKS = [
         'seller': {'name': 'Dystopia Books', 'contact': 'sales@dystopiabooks.example.com'},
         'price': 8.99,
         'genre': 'Sci-Fi',
-        'cover_url': 'https://placehold.co/150x220/e0e0e0/333333?text=1984',
+        'cover_url': 'https://m.media-amazon.com/images/I/71kxa1-0mfL._AC_UF1000,1000_QL80_.jpg',
         'stock': 10
     },
     {
@@ -54,7 +54,7 @@ MOCK_BOOKS = [
         'seller': {'name': 'MiddleEarth Books', 'contact': 'hobbit@middleearth.example.com'},
         'price': 12.99,
         'genre': 'Sci-Fi',
-        'cover_url': 'https://placehold.co/150x220/e0e0e0/333333?text=Hobbit',
+        'cover_url': 'https://upload.wikimedia.org/wikipedia/en/4/4a/TheHobbit_FirstEdition.jpg',
         'stock': 10
     },
     {
@@ -65,7 +65,7 @@ MOCK_BOOKS = [
         'seller': {'name': 'TechReads', 'contact': 'support@techreads.example.com'},
         'price': 29.99,
         'genre': 'Non-Fiction',
-        'cover_url': 'https://placehold.co/150x220/e0e0e0/333333?text=Code',
+        'cover_url': 'https://m.media-amazon.com/images/I/71T7aD3EOTL._UF1000,1000_QL80_.jpg',
         'stock': 10
     },
     {
@@ -76,7 +76,7 @@ MOCK_BOOKS = [
         'seller': {'name': 'Patterns Shop', 'contact': 'info@patternsshop.example.com'},
         'price': 35.50,
         'genre': 'Non-Fiction',
-        'cover_url': 'https://placehold.co/150x220/e0e0e0/333333?text=Patterns',
+        'cover_url': 'https://m.media-amazon.com/images/I/81gtKoapHFL._AC_UF1000,1000_QL80_.jpg',
         'stock': 10
     },
     {
@@ -87,7 +87,7 @@ MOCK_BOOKS = [
         'seller': {'name': 'Inspirations Ltd', 'contact': 'hello@inspirations.example.com'},
         'price': 9.99,
         'genre': 'Fiction',
-        'cover_url': 'https://placehold.co/150x220/e0e0e0/333333?text=Alchemist',
+        'cover_url': 'https://m.media-amazon.com/images/I/51Z0nLAfLmL._AC_UF1000,1000_QL80_.jpg',
         'stock': 10
     }
 ]
@@ -1121,11 +1121,15 @@ def _find_book(book_id):
 def add_to_cart(book_id):
     user = session.get('user')
     if not user:
+        if request.headers.get('Accept') == 'application/json':
+            return jsonify({'error': 'login_required'}), 401
         flash('Please sign in to add items to cart.', 'error')
         return redirect(url_for('index'))
 
     book = _find_book(book_id)
     if not book:
+        if request.headers.get('Accept') == 'application/json':
+            return jsonify({'error': 'book_not_found'}), 404
         flash('Book not found.', 'error')
         return redirect(url_for('dashboard'))
 
@@ -1136,6 +1140,8 @@ def add_to_cart(book_id):
     key = str(book_id)
     current = int(cart.get(key, 0))
     if available is not None and current + 1 > available:
+        if request.headers.get('Accept') == 'application/json':
+            return jsonify({'error': 'stock_limit', 'message': f"Not enough stock for '{book.get('title')}'."}), 400
         flash(f"Not enough stock for '{book.get('title')}'.", 'error')
         ref = request.referrer
         if ref:
@@ -1152,6 +1158,18 @@ def add_to_cart(book_id):
         if user_obj is not None:
             user_obj['cart'] = cart
             USERS[email] = user_obj
+
+    if request.headers.get('Accept') == 'application/json':
+        try:
+            count = sum(int(q) for q in cart.values())
+        except:
+            count = 0
+        return jsonify({
+            'success': True,
+            'message': f"Added '{book.get('title')}' to cart.",
+            'count': count
+        })
+
     flash(f"Added '{book.get('title')}' to cart.", 'success')
 
     # Redirect back to referring page if available
